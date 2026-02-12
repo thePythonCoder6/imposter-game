@@ -44,13 +44,15 @@
 </div>
 
 <div id="lobby" style="display:none;">
-  <h2>Room Code: <span id="roomCodeDisplay"></span></h2>
-  <div id="players-list">Waiting for players...</div>
-  <button id="startBtn" style="display:none;" onclick="revealGame()">Start / Reveal (Host)</button>
+  <h2>Room: <span id="roomCodeDisplay"></span></h2>
+  <div id="players-list">Waiting...</div>
+  <div id="reveal-section" style="display:none;">
+    <button class="reveal" onclick="revealGame()">Reveal Imposter & Word (Host)</button>
+  </div>
 </div>
 
 <div id="game" style="display:none;">
-  <div id="status">Look at your card privately...</div>
+  <div id="status">Look privately! Click "Seen" when ready.</div>
   <div id="player-card">
     <div id="player-name"></div>
     <div id="role-text"></div>
@@ -68,29 +70,24 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-// Socket connection (auto-uses same domain on Render)
 const socket = io();
 
-// Basic screens switch
 function showScreen(id) {
   document.querySelectorAll('#menu, #create, #join, #lobby, #game, #result').forEach(el => el.style.display = 'none');
   document.getElementById(id).style.display = 'block';
 }
 
-// Populate categories
+// Populate categories (full list)
 const catSelect = document.getElementById('category');
-['food', 'animals', 'movies'].forEach(cat => {
+Object.keys(categories).sort().forEach(key => {  // assumes categories defined in server, but client has stub
   const opt = document.createElement('option');
-  opt.value = cat;
-  opt.text = cat.charAt(0).toUpperCase() + cat.slice(1);
+  opt.value = key;
+  opt.text = key.replace(/_/g, ' ').toUpperCase();
   catSelect.appendChild(opt);
 });
 
-let currentRoom = null;
+let currentRoom = '';
 let isHost = false;
-let myIndex = -1;
-
-socket.on('connect', () => console.log('Connected to server'));
 
 socket.on('roomCreated', ({ code }) => {
   currentRoom = code;
@@ -106,58 +103,50 @@ socket.on('joined', ({ code }) => {
 });
 
 socket.on('playersUpdate', (players) => {
-  myIndex = players.findIndex(p => p.id === socket.id);
   let html = '<h3>Players:</h3>';
-  players.forEach(p => {
-    html += `<div>${p.name}${p.seen ? ' ✓' : ''}${p.id === socket.id ? ' (you)' : ''}</div>`;
-  });
+  players.forEach(p => html += `<div>${p.name}${p.seen ? ' ✓' : ''}</div>`);
   document.getElementById('players-list').innerHTML = html;
 
-  if (isHost && players.length >= 3 && players.every(p => p.seen)) {
-    document.getElementById('startBtn').style.display = 'block';
+  if (isHost && players.every(p => p.seen) && players.length >= 3) {
+    document.getElementById('reveal-section').style.display = 'block';
   }
 });
 
-socket.on('gameStart', ({ imposterIndex, secret }) => {
+socket.on('gameStarted', ({ imposterIndex, secret }) => {
   showScreen('game');
-  document.getElementById('player-name').textContent = players[myIndex]?.name || 'You';
-
-  if (myIndex === imposterIndex) {
+  document.getElementById('player-name').textContent = 'You';
+  const myIdx = players.findIndex(p => p.id === socket.id);  // assume players from last update
+  if (myIdx === imposterIndex) {
     document.getElementById('role-text').textContent = 'You are the...';
     document.getElementById('secretWord').textContent = 'IMPOSTER!';
     document.getElementById('secretWord').className = 'imposter';
   } else {
-    document.getElementById('role-text').textContent = 'The word is:';
+    document.getElementById('role-text').textContent = 'The secret word is:';
     document.getElementById('secretWord').textContent = secret;
   }
-
   document.getElementById('player-card').style.display = 'block';
-  document.getElementById('seenBtn').onclick = () => {
-    socket.emit('markSeen', currentRoom);
-    document.getElementById('secret-word-container').classList.add('visible');
-    document.getElementById('seenBtn').style.display = 'none';
-  };
+  document.getElementById('seenBtn').onclick = () => socket.emit('markSeen', currentRoom);
 });
 
-socket.on('gameEnd', ({ imposterName, secret }) => {
+socket.on('gameRevealed', ({ imposterName, secret }) => {
   showScreen('result');
   document.getElementById('impReveal').innerHTML = `Imposter: <strong>${imposterName}</strong>`;
   document.getElementById('wordReveal').innerHTML = `Word: <strong>${secret}</strong>`;
 });
 
-socket.on('error', msg => alert(msg || 'Error'));
+socket.on('error', alert);
 
 function createRoom() {
   const name = document.getElementById('createName').value.trim() || 'Host';
   const cat = document.getElementById('category').value;
-  socket.emit('create', { name, category: cat });
+  socket.emit('createRoom', { name, category: cat });
 }
 
 function joinRoom() {
   const code = document.getElementById('joinCode').value.trim().toUpperCase();
   const name = document.getElementById('joinName').value.trim();
   if (!code || !name) return alert('Fill both');
-  socket.emit('join', { code, name });
+  socket.emit('joinRoom', { code, name });
 }
 
 function revealGame() {
