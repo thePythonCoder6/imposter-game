@@ -5,75 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Imposter Who? – Online Multiplayer</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f0f1a;
-      color: #e0e0ff;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-    }
+    body { font-family: Arial, sans-serif; background: #0f0f1a; color: #e0e0ff; margin: 0; padding: 20px; text-align: center; }
     h1 { color: #ff5555; }
-    button {
-      background: #2e7d32;
-      color: white;
-      border: none;
-      padding: 14px 32px;
-      margin: 12px;
-      font-size: 1.15em;
-      border-radius: 8px;
-      cursor: pointer;
-      min-width: 220px;
-    }
+    button { background: #2e7d32; color: white; border: none; padding: 14px 32px; margin: 12px; font-size: 1.15em; border-radius: 8px; cursor: pointer; min-width: 220px; }
     button:hover { background: #388e3c; }
-    button.reveal {
-      background: #d32f2f;
-      font-size: 1.4em;
-      padding: 18px 48px;
-    }
-    select, input {
-      padding: 12px;
-      font-size: 1.1em;
-      margin: 10px;
-      width: 90%;
-      max-width: 360px;
-      border-radius: 8px;
-      background: #1a1a33;
-      color: white;
-      border: 1px solid #444;
-    }
-    #player-card {
-      background: #1a1a33;
-      border: 3px solid #3366ff;
-      border-radius: 12px;
-      padding: 28px 20px;
-      margin: 30px auto;
-      max-width: 480px;
-      display: none;
-    }
+    button.reveal { background: #d32f2f; font-size: 1.4em; padding: 18px 48px; }
+    select, input { padding: 12px; font-size: 1.1em; margin: 10px; width: 90%; max-width: 360px; border-radius: 8px; background: #1a1a33; color: white; border: 1px solid #444; }
+    #player-card { background: #1a1a33; border: 3px solid #3366ff; border-radius: 12px; padding: 28px 20px; margin: 30px auto; max-width: 480px; display: none; }
     #player-name { font-size: 2.3em; color: #88ccff; margin-bottom: 16px; }
-    #secret-word-container {
-      font-size: 3.2em;
-      font-weight: bold;
-      margin: 24px 0;
-      min-height: 1.2em;
-      background: #000;
-      color: #000;
-      padding: 16px;
-      border-radius: 10px;
-      transition: all 0.3s;
-    }
+    #secret-word-container { font-size: 3.2em; font-weight: bold; margin: 24px 0; min-height: 1.2em; background: #000; color: #000; padding: 16px; border-radius: 10px; transition: all 0.3s; }
     #secret-word-container.visible { background: transparent; color: inherit; }
     .imposter { color: #ff4444; }
-    #status {
-      font-size: 1.4em;
-      background: #202040;
-      padding: 18px;
-      border-radius: 10px;
-      margin: 20px 0;
-      min-height: 90px;
-    }
+    #status { font-size: 1.4em; background: #202040; padding: 18px; border-radius: 10px; margin: 20px 0; min-height: 90px; }
     #players-list { font-size: 1.15em; margin: 16px 0; line-height: 1.5; }
+    #error-msg { color: #ff4444; font-weight: bold; margin: 10px; }
   </style>
 </head>
 <body>
@@ -97,6 +42,7 @@
   <input id="joinName" placeholder="Your name"><br>
   <button onclick="joinRoom()">Join</button><br><br>
   <button onclick="showScreen('menu')">Back</button>
+  <div id="error-msg"></div>
 </div>
 
 <div id="lobby" style="display:none;">
@@ -126,7 +72,7 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-// Full categories list – exactly as in your original game
+// Full categories (all from your original game)
 const categories = {
   food: ["Pizza", "Burger", "Sushi", "Tacos", "Pasta", "Ramen", "Curry", "Pho", "Dim Sum", "Paella", "Butter Chicken", "Pad Thai", "Lasagna", "Burrito", "Falafel", "Shawarma", "Kebab", "Poutine", "Fish & Chips", "Bangers & Mash", "Pie Floater", "Hamburger", "Hot Dog", "Nachos", "Quesadilla", "Enchilada", "Chimichanga", "Biryani", "Laksa", "Tom Yum", "Satay", "Spring Rolls", "Dumplings", "Gyros", "Souvlaki", "Pierogi", "Ceviche", "Poke Bowl", "Bibimbap", "Katsu Curry", "Carbonara", "Risotto", "Tagine", "Jollof Rice", "Feijoada", "Empanada", "Schnitzel", "Paella", "Goulash"],
   movies: ["The Lion King", "Frozen", "Toy Story", "Finding Nemo", "The Incredibles", "Moana", "Encanto", "Coco", "Inside Out", "Up", "Wall-E", "Ratatouille", "The Avengers", "Spider-Man", "Batman", "Harry Potter", "Star Wars", "Jurassic Park", "Titanic", "Forrest Gump", "The Matrix", "Inception", "Pulp Fiction", "The Godfather", "Jaws", "E.T.", "Back to the Future", "Indiana Jones", "Ghostbusters", "Grease", "The Sound of Music", "Beauty and the Beast", "Aladdin", "The Little Mermaid", "Shrek", "Kung Fu Panda", "Despicable Me", "Minions", "Cars", "Monsters Inc", "Zootopia", "Big Hero 6", "Wreck-It Ralph", "Tangled", "Brave", "The Princess and the Frog", "Mulan", "Hercules", "Cinderella", "Snow White"],
@@ -239,7 +185,7 @@ const categories = {
   rock_bands: ["The Beatles", "Led Zeppelin", "Queen", "Pink Floyd", "Rolling Stones", "Nirvana", "AC/DC", "Guns N' Roses", "Metallica", "Foo Fighters"]
 };
 
-// Populate category dropdown
+// Populate dropdown
 const catSelect = document.getElementById('category');
 Object.keys(categories).sort().forEach(key => {
   const opt = document.createElement('option');
@@ -254,21 +200,50 @@ let currentRoom = '';
 let isHost = false;
 let players = [];
 
-// Screen switching helper
+// Show/hide screens
 function showScreen(id) {
   document.querySelectorAll('#menu, #create, #join, #lobby, #game, #result')
     .forEach(el => el.style.display = 'none');
   document.getElementById(id).style.display = 'block';
 }
 
-const socket = io();
+// Socket.IO with reconnection & heartbeat
+const socket = io({
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+  transports: ['polling', 'websocket']  // Try polling first on Render free
+});
 
-// Heartbeat to keep Render free-tier connection alive
+// Heartbeat to prevent Render free timeout
 setInterval(() => {
   if (socket.connected) {
     socket.emit('ping');
   }
-}, 30000);
+}, 25000);
+
+socket.on('connect', () => {
+  console.log('Socket connected');
+  document.getElementById('error-msg').textContent = '';
+});
+
+socket.on('connect_error', (err) => {
+  console.error('Connection error:', err.message);
+  document.getElementById('error-msg').textContent = 'Connection failed - trying again...';
+});
+
+socket.on('disconnect', (reason) => {
+  console.log('Disconnected:', reason);
+  document.getElementById('error-msg').textContent = 'Disconnected - reconnecting...';
+});
+
+socket.on('reconnect', () => {
+  console.log('Reconnected');
+  if (currentRoom) {
+    // Re-join if in room
+    socket.emit('joinRoom', { code: currentRoom, name: players.find(p => p.id === socket.id)?.name || 'Unknown' });
+  }
+});
 
 socket.on('roomCreated', ({ code }) => {
   currentRoom = code;
@@ -291,11 +266,8 @@ socket.on('playersUpdate', (updatedPlayers) => {
   });
   document.getElementById('players-list').innerHTML = html || 'Waiting for players...';
 
-  // Show reveal button when conditions met
   if (isHost && players.length >= 3 && players.every(p => p.seen)) {
     document.getElementById('reveal-section').style.display = 'block';
-  } else {
-    document.getElementById('reveal-section').style.display = 'none';
   }
 });
 
@@ -312,7 +284,6 @@ socket.on('gameStarted', ({ imposterIndex, secret }) => {
   } else {
     document.getElementById('role-text').textContent = 'The secret word is:';
     document.getElementById('secretWord').textContent = secret;
-    document.getElementById('secretWord').className = '';
   }
 
   document.getElementById('player-card').style.display = 'block';
@@ -330,19 +301,23 @@ socket.on('gameRevealed', ({ imposterName, secret }) => {
   document.getElementById('wordReveal').innerHTML = `The secret word was: <strong>${secret}</strong>`;
 });
 
-socket.on('error', msg => alert(msg || 'An error occurred'));
+socket.on('error', msg => {
+  alert(msg || 'An error occurred');
+  document.getElementById('error-msg').textContent = msg || 'Error - try refreshing';
+});
 
 function createRoom() {
   const name = document.getElementById('createName').value.trim() || 'Host';
   const cat = document.getElementById('category').value;
-  if (!cat) return alert('Please select a category');
+  if (!cat) return alert('Select a category');
   socket.emit('createRoom', { name, category: cat });
 }
 
 function joinRoom() {
   const code = document.getElementById('joinCode').value.trim().toUpperCase();
   const name = document.getElementById('joinName').value.trim();
-  if (!code || !name) return alert('Please fill both fields');
+  if (!code || !name) return alert('Fill both fields');
+  document.getElementById('error-msg').textContent = 'Joining...';
   socket.emit('joinRoom', { code, name });
 }
 
@@ -350,7 +325,6 @@ function revealGame() {
   socket.emit('reveal', currentRoom);
 }
 
-// Start with menu screen
 showScreen('menu');
 </script>
 </body>
