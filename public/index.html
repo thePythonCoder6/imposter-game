@@ -5,78 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Imposter Who? – Online</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f0f1a;
-      color: #e0e0ff;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-    }
+    body { font-family: Arial, sans-serif; background: #0f0f1a; color: #e0e0ff; margin: 0; padding: 20px; text-align: center; }
     h1 { color: #ff5555; }
-    button {
-      background: #2e7d32;
-      color: white;
-      border: none;
-      padding: 14px 32px;
-      margin: 12px;
-      font-size: 1.15em;
-      border-radius: 8px;
-      cursor: pointer;
-      min-width: 220px;
-    }
+    button { background: #2e7d32; color: white; border: none; padding: 14px 32px; margin: 12px; font-size: 1.15em; border-radius: 8px; cursor: pointer; min-width: 220px; }
     button:hover { background: #388e3c; }
-    button.reveal {
-      background: #d32f2f;
-      font-size: 1.4em;
-      padding: 18px 48px;
-    }
-    select, input {
-      padding: 12px;
-      font-size: 1.1em;
-      margin: 10px;
-      width: 90%;
-      max-width: 360px;
-      border-radius: 8px;
-      background: #1a1a33;
-      color: white;
-      border: 1px solid #444;
-    }
-    #player-card {
-      background: #1a1a33;
-      border: 3px solid #3366ff;
-      border-radius: 12px;
-      padding: 28px 20px;
-      margin: 30px auto;
-      max-width: 480px;
-      display: none;
-    }
+    button.reveal { background: #d32f2f; font-size: 1.4em; padding: 18px 48px; }
+    select, input { padding: 12px; font-size: 1.1em; margin: 10px; width: 90%; max-width: 360px; border-radius: 8px; background: #1a1a33; color: white; border: 1px solid #444; }
+    #player-card { background: #1a1a33; border: 3px solid #3366ff; border-radius: 12px; padding: 28px 20px; margin: 30px auto; max-width: 480px; display: none; }
     #player-name { font-size: 2.3em; color: #88ccff; margin-bottom: 16px; }
-    #secret-word-container {
-      font-size: 3.2em;
-      font-weight: bold;
-      margin: 24px 0;
-      min-height: 1.2em;
-      background: #000;
-      color: #000;
-      padding: 16px;
-      border-radius: 10px;
-      transition: all 0.3s;
-    }
-    #secret-word-container.visible {
-      background: transparent;
-      color: inherit;
-    }
+    #secret-word-container { font-size: 3.2em; font-weight: bold; margin: 24px 0; min-height: 1.2em; background: #000; color: #000; padding: 16px; border-radius: 10px; transition: all 0.3s; }
+    #secret-word-container.visible { background: transparent; color: inherit; }
     .imposter { color: #ff4444; }
-    #status {
-      font-size: 1.4em;
-      background: #202040;
-      padding: 18px;
-      border-radius: 10px;
-      margin: 20px 0;
-      min-height: 90px;
-    }
-    #lobby, #reveal-section { margin: 30px 0; }
+    #status { font-size: 1.4em; background: #202040; padding: 18px; border-radius: 10px; margin: 20px 0; min-height: 90px; }
     #players-list { font-size: 1.15em; margin: 16px 0; line-height: 1.5; }
   </style>
 </head>
@@ -85,115 +25,88 @@
 <h1>Imposter Who? – Online</h1>
 
 <div id="menu">
-  <button onclick="show('create')">Create Room</button><br><br>
-  <button onclick="show('join')">Join Room</button>
+  <button onclick="showScreen('create')">Create Room</button><br><br>
+  <button onclick="showScreen('join')">Join Room</button>
 </div>
 
 <div id="create" style="display:none;">
-  <select id="cat"></select><br>
-  <input id="nameCreate" placeholder="Your name" value="Host"><br>
+  <select id="category"></select><br>
+  <input id="createName" placeholder="Your name" value="Host"><br>
   <button onclick="createRoom()">Create</button><br><br>
-  <button onclick="show('menu')">Back</button>
+  <button onclick="showScreen('menu')">Back</button>
 </div>
 
 <div id="join" style="display:none;">
-  <input id="roomCode" placeholder="Room code (e.g. abcd12)" maxlength="6"><br>
-  <input id="nameJoin" placeholder="Your name"><br>
+  <input id="joinCode" placeholder="Room code" maxlength="6"><br>
+  <input id="joinName" placeholder="Your name"><br>
   <button onclick="joinRoom()">Join</button><br><br>
-  <button onclick="show('menu')">Back</button>
+  <button onclick="showScreen('menu')">Back</button>
 </div>
 
 <div id="lobby" style="display:none;">
-  <h2>Room: <span id="roomDisplay"></span></h2>
-  <p>Code: <strong style="color:#ffcc00; font-size:1.4em;" id="codeBig"></strong></p>
-  <div id="players-list">Waiting...</div>
-  <button id="startBtn" style="display:none;" onclick="startGame()">Start Game (Host)</button>
+  <h2>Room Code: <span id="roomCodeDisplay"></span></h2>
+  <div id="players-list">Waiting for players...</div>
+  <button id="startBtn" style="display:none;" onclick="revealGame()">Start / Reveal (Host)</button>
 </div>
 
 <div id="game" style="display:none;">
-  <div id="status">Waiting...</div>
+  <div id="status">Look at your card privately...</div>
   <div id="player-card">
     <div id="player-name"></div>
     <div id="role-text"></div>
-    <div id="secret-word-container"><span id="secret-word"></span></div>
-    <button id="seenBtn">I've Seen My Card</button>
-  </div>
-  <div id="reveal-section" style="display:none;">
-    <button class="reveal" id="revealBtn">Reveal Imposter & Word</button>
+    <div id="secret-word-container"><span id="secretWord"></span></div>
+    <button id="seenBtn">I've Seen It</button>
   </div>
 </div>
 
 <div id="result" style="display:none;">
   <h2>Game Over</h2>
-  <p id="imp-reveal"></p>
-  <p id="word-reveal"></p>
+  <p id="impReveal"></p>
+  <p id="wordReveal"></p>
   <button onclick="location.reload()">Play Again</button>
 </div>
 
-<!-- Socket.IO client -->
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-
+<script src="/socket.io/socket.io.js"></script>
 <script>
-// Change this line to your actual backend URL if not same domain
-// Example: const socket = io('https://your-app-name.onrender.com');
-const socket = io();  // ← auto-detects same origin (recommended for Render single-service deploy)
+// Socket connection (auto-uses same domain on Render)
+const socket = io();
 
-let myName = '';
-let roomCode = '';
+// Basic screens switch
+function showScreen(id) {
+  document.querySelectorAll('#menu, #create, #join, #lobby, #game, #result').forEach(el => el.style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+}
+
+// Populate categories
+const catSelect = document.getElementById('category');
+['food', 'animals', 'movies'].forEach(cat => {
+  const opt = document.createElement('option');
+  opt.value = cat;
+  opt.text = cat.charAt(0).toUpperCase() + cat.slice(1);
+  catSelect.appendChild(opt);
+});
+
+let currentRoom = null;
 let isHost = false;
 let myIndex = -1;
 
-const categories = {
-  food: ["Pizza", "Burger", "Sushi", "Tacos", "Pasta", "Ice Cream", "Sushi", "Curry", "Pizza", "Pancakes"],
-  animals: ["Dog", "Cat", "Elephant", "Giraffe", "Lion", "Tiger", "Panda", "Koala", "Penguin", "Dolphin"],
-  movies: ["Frozen", "Toy Story", "The Lion King", "Moana", "Encanto", "Coco", "Inside Out", "Up", "Shrek", "Kung Fu Panda"],
-  // Add more categories / words if you want
-};
+socket.on('connect', () => console.log('Connected to server'));
 
-// Populate category dropdown
-const catEl = document.getElementById('cat');
-Object.keys(categories).sort().forEach(k => {
-  const opt = document.createElement('option');
-  opt.value = k;
-  opt.textContent = k.charAt(0).toUpperCase() + k.slice(1);
-  catEl.appendChild(opt);
-});
-
-function show(screen) {
-  document.querySelectorAll('#menu, #create, #join, #lobby, #game, #result').forEach(el => el.style.display = 'none');
-  document.getElementById(screen).style.display = 'block';
-}
-
-function createRoom() {
-  myName = document.getElementById('nameCreate').value.trim() || 'Host';
-  const category = document.getElementById('cat').value;
-  if (!category) return alert('Choose a category');
-
-  socket.emit('create', { name: myName, category });
+socket.on('roomCreated', ({ code }) => {
+  currentRoom = code;
+  document.getElementById('roomCodeDisplay').textContent = code;
+  showScreen('lobby');
   isHost = true;
-}
-
-function joinRoom() {
-  roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
-  myName = document.getElementById('nameJoin').value.trim();
-  if (!roomCode || !myName) return alert('Fill both fields');
-
-  socket.emit('join', { code: roomCode, name: myName });
-}
-
-socket.on('room', code => {
-  roomCode = code;
-  document.getElementById('roomDisplay').textContent = code;
-  document.getElementById('codeBig').textContent = code;
-  show('lobby');
 });
 
-socket.on('joined', () => {
-  show('lobby');
+socket.on('joined', ({ code }) => {
+  currentRoom = code;
+  document.getElementById('roomCodeDisplay').textContent = code;
+  showScreen('lobby');
 });
 
-socket.on('players', players => {
-  myIndex = players.findIndex(p => p.name === myName);
+socket.on('playersUpdate', (players) => {
+  myIndex = players.findIndex(p => p.id === socket.id);
   let html = '<h3>Players:</h3>';
   players.forEach(p => {
     html += `<div>${p.name}${p.seen ? ' ✓' : ''}${p.id === socket.id ? ' (you)' : ''}</div>`;
@@ -201,50 +114,57 @@ socket.on('players', players => {
   document.getElementById('players-list').innerHTML = html;
 
   if (isHost && players.length >= 3 && players.every(p => p.seen)) {
-    document.getElementById('startBtn').style.display = 'inline-block';
-  } else {
-    document.getElementById('startBtn').style.display = 'none';
+    document.getElementById('startBtn').style.display = 'block';
   }
 });
 
-socket.on('start', ({ imposter, secret }) => {
-  show('game');
-  document.getElementById('player-name').textContent = myName;
+socket.on('gameStart', ({ imposterIndex, secret }) => {
+  showScreen('game');
+  document.getElementById('player-name').textContent = players[myIndex]?.name || 'You';
 
-  if (myIndex === imposter) {
+  if (myIndex === imposterIndex) {
     document.getElementById('role-text').textContent = 'You are the...';
-    document.getElementById('secret-word').textContent = 'IMPOSTER!';
-    document.getElementById('secret-word').className = 'imposter';
+    document.getElementById('secretWord').textContent = 'IMPOSTER!';
+    document.getElementById('secretWord').className = 'imposter';
   } else {
-    document.getElementById('role-text').textContent = 'The secret word is:';
-    document.getElementById('secret-word').textContent = secret;
-    document.getElementById('secret-word').className = '';
+    document.getElementById('role-text').textContent = 'The word is:';
+    document.getElementById('secretWord').textContent = secret;
   }
 
-  document.getElementById('status').innerHTML = 'Look at your card!<br>Don’t show anyone.';
   document.getElementById('player-card').style.display = 'block';
+  document.getElementById('seenBtn').onclick = () => {
+    socket.emit('markSeen', currentRoom);
+    document.getElementById('secret-word-container').classList.add('visible');
+    document.getElementById('seenBtn').style.display = 'none';
+  };
 });
 
-socket.on('end', ({ imposterName, secret }) => {
-  show('result');
-  document.getElementById('imp-reveal').innerHTML = `Imposter was: <strong>${imposterName}</strong>`;
-  document.getElementById('word-reveal').innerHTML = `Word was: <strong>${secret}</strong>`;
+socket.on('gameEnd', ({ imposterName, secret }) => {
+  showScreen('result');
+  document.getElementById('impReveal').innerHTML = `Imposter: <strong>${imposterName}</strong>`;
+  document.getElementById('wordReveal').innerHTML = `Word: <strong>${secret}</strong>`;
 });
 
-socket.on('error', msg => alert(msg));
+socket.on('error', msg => alert(msg || 'Error'));
 
-// Button handlers
-document.getElementById('seenBtn').onclick = () => {
-  socket.emit('seen', roomCode);
-  document.getElementById('secret-word-container').classList.add('visible');
-  document.getElementById('seenBtn').style.display = 'none';
-  document.getElementById('status').innerHTML = 'Seen! Waiting for others...';
-};
-
-function startGame() {
-  socket.emit('reveal', roomCode);  // host only
+function createRoom() {
+  const name = document.getElementById('createName').value.trim() || 'Host';
+  const cat = document.getElementById('category').value;
+  socket.emit('create', { name, category: cat });
 }
 
+function joinRoom() {
+  const code = document.getElementById('joinCode').value.trim().toUpperCase();
+  const name = document.getElementById('joinName').value.trim();
+  if (!code || !name) return alert('Fill both');
+  socket.emit('join', { code, name });
+}
+
+function revealGame() {
+  socket.emit('reveal', currentRoom);
+}
+
+showScreen('menu');
 </script>
 </body>
 </html>
