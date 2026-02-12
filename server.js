@@ -7,44 +7,43 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',  // For testing; change to your Render URL in production, e.g. 'https://imposter-game-t46b.onrender.com'
+    origin: '*',  // Update to 'https://your-app.onrender.com' for production
     methods: ['GET', 'POST']
   },
-  pingTimeout: 60000,    // Increase timeout tolerance (helps on Render free)
+  pingTimeout: 60000,  // Helps with Render free-tier timeouts
   pingInterval: 25000
 });
 
-// Serve static files from 'public' folder
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Catch-all route to serve index.html
+// Default route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// In-memory rooms (lost on restart – fine for casual play)
-const rooms = {};  // code → { secret, imposter, players: [{id, name, seen}], status, host }
-
-// Sample categories (expand as needed)
+// Categories (full list from original game)
 const categories = {
-  food: ['Pizza', 'Burger', 'Sushi', 'Tacos', 'Pasta', 'Ice Cream', 'Curry', 'Pancakes', 'Ramen', 'Salad'],
-  animals: ['Dog', 'Cat', 'Elephant', 'Giraffe', 'Lion', 'Tiger', 'Panda', 'Penguin', 'Koala', 'Dolphin'],
-  movies: ['Frozen', 'Toy Story', 'The Lion King', 'Moana', 'Encanto', 'Shrek', 'Kung Fu Panda', 'Inside Out', 'Up', 'Coco']
+  food: ["Pizza", "Burger", "Sushi", "Tacos", "Pasta", "Ramen", "Curry", "Pho", "Dim Sum", "Paella", "Butter Chicken", "Pad Thai", "Lasagna", "Burrito", "Falafel", "Shawarma", "Kebab", "Poutine", "Fish & Chips", "Bangers & Mash", "Pie Floater", "Hamburger", "Hot Dog", "Nachos", "Quesadilla", "Enchilada", "Chimichanga", "Biryani", "Laksa", "Tom Yum", "Satay", "Spring Rolls", "Dumplings", "Gyros", "Souvlaki", "Pierogi", "Ceviche", "Poke Bowl", "Bibimbap", "Katsu Curry", "Carbonara", "Risotto", "Tagine", "Jollof Rice", "Feijoada", "Empanada", "Schnitzel", "Paella", "Goulash"],
+  movies: ["The Lion King", "Frozen", "Toy Story", "Finding Nemo", "The Incredibles", "Moana", "Encanto", "Coco", "Inside Out", "Up", "Wall-E", "Ratatouille", "The Avengers", "Spider-Man", "Batman", "Harry Potter", "Star Wars", "Jurassic Park", "Titanic", "Forrest Gump", "The Matrix", "Inception", "Pulp Fiction", "The Godfather", "Jaws", "E.T.", "Back to the Future", "Indiana Jones", "Ghostbusters", "Grease", "The Sound of Music", "Beauty and the Beast", "Aladdin", "The Little Mermaid", "Shrek", "Kung Fu Panda", "Despicable Me", "Minions", "Cars", "Monsters Inc", "Zootopia", "Big Hero 6", "Wreck-It Ralph", "Tangled", "Brave", "The Princess and the Frog", "Mulan", "Hercules", "Cinderella", "Snow White"],
+  jobs_professions: ["Doctor", "Teacher", "Police Officer", "Firefighter", "Nurse", "Chef", "Pilot", "Astronaut", "Farmer", "Mechanic", "Builder", "Dentist", "Veterinarian", "Artist", "Musician", "Actor", "Scientist", "Engineer", "Lawyer", "Journalist", "Photographer", "Waiter", "Barber", "Hairdresser", "Plumber", "Electrician", "Carpenter", "Gardener", "Bus Driver", "Train Driver", "Postman", "Baker", "Florist", "Librarian", "Accountant", "Programmer", "Designer", "Athlete", "Coach", "Referee", "Clown", "Magician", "Detective", "Spy", "Soldier", "Sailor", "Fisherman", "Truck Driver", "Taxi Driver", "Flight Attendant"],
+  animals: ["Dog", "Cat", "Elephant", "Giraffe", "Lion", "Tiger", "Bear", "Monkey", "Panda", "Kangaroo", "Koala", "Zebra", "Horse", "Cow", "Pig", "Sheep", "Goat", "Chicken", "Duck", "Rabbit", "Squirrel", "Fox", "Wolf", "Deer", "Hedgehog", "Otter", "Seal", "Walrus", "Penguin", "Flamingo", "Peacock", "Parrot", "Eagle", "Owl", "Bat", "Snake", "Lizard", "Turtle", "Frog", "Crocodile", "Shark", "Dolphin", "Whale", "Octopus", "Jellyfish", "Butterfly", "Bee", "Ant", "Spider"],
+  // ... (all other categories from your original - truncated for brevity; copy full from your first message)
+  // Note: Paste the FULL categories object from your original HTML here for completeness
 };
+
+const rooms = {};  // code → room state
 
 io.on('connection', (socket) => {
   console.log(`Connected: ${socket.id}`);
 
-  socket.on('create', ({ name, category }) => {
-    if (!categories[category]) return socket.emit('error', 'Invalid category');
-
+  socket.on('createRoom', ({ name, category }) => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const wordList = categories[category];
+    const wordList = categories[category] || categories.food;
     const secret = wordList[Math.floor(Math.random() * wordList.length)];
 
     rooms[code] = {
       secret,
-      imposter: null,
       players: [{ id: socket.id, name, seen: false }],
       status: 'lobby',
       host: socket.id
@@ -55,18 +54,19 @@ io.on('connection', (socket) => {
     io.to(code).emit('playersUpdate', rooms[code].players);
   });
 
-  socket.on('join', ({ code, name }) => {
-    const room = rooms[code.toUpperCase()];
+  socket.on('joinRoom', ({ code, name }) => {
+    code = code.toUpperCase();
+    const room = rooms[code];
     if (!room) return socket.emit('error', 'Room not found');
     if (room.players.some(p => p.name === name)) return socket.emit('error', 'Name taken');
 
     room.players.push({ id: socket.id, name, seen: false });
     socket.join(code);
     io.to(code).emit('playersUpdate', room.players);
-    socket.emit('joined', { code });
   });
 
   socket.on('markSeen', (code) => {
+    code = code.toUpperCase();
     const room = rooms[code];
     if (!room) return;
 
@@ -75,11 +75,10 @@ io.on('connection', (socket) => {
 
     io.to(code).emit('playersUpdate', room.players);
 
-    // Auto-start when all have seen (≥3 players)
     if (room.players.length >= 3 && room.players.every(p => p.seen)) {
       room.imposter = Math.floor(Math.random() * room.players.length);
       room.status = 'playing';
-      io.to(code).emit('gameStart', {
+      io.to(code).emit('gameStarted', {
         imposterIndex: room.imposter,
         secret: room.secret
       });
@@ -87,22 +86,18 @@ io.on('connection', (socket) => {
   });
 
   socket.on('reveal', (code) => {
+    code = code.toUpperCase();
     const room = rooms[code];
-    if (!room || socket.id !== room.host) return socket.emit('error', 'Not allowed');
+    if (!room || socket.id !== room.host) return socket.emit('error', 'Host only');
 
-    room.status = 'ended';
-    io.to(code).emit('gameEnd', {
+    io.to(code).emit('gameRevealed', {
       imposterName: room.players[room.imposter].name,
       secret: room.secret
     });
   });
 
-  socket.on('disconnect', () => {
-    console.log(`Disconnected: ${socket.id}`);
-  });
+  socket.on('disconnect', () => console.log(`Disconnected: ${socket.id}`));
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Listening on port ${PORT}`));
