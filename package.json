@@ -1,7 +1,7 @@
 {
   "name": "imposter-game",
   "version": "1.0.0",
-  "description": "Simple online Imposter Who? game",
+  "description": "Online Imposter Who? game",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
