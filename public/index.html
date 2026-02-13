@@ -390,8 +390,7 @@ const catSelect = document.getElementById('category');
 Object.keys(categories).sort().forEach(key => {
   const opt = document.createElement('option');
   opt.value = key;
-  let label = key.replace(/_/g, ' ');
-  label = label.charAt(0).toUpperCase() + label.slice(1);
+  const label = key.replace(/_/g, ' ').toUpperCase();
   opt.textContent = label;
   catSelect.appendChild(opt);
 });
