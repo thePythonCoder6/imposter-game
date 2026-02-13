@@ -10,6 +10,7 @@ Made By Oshi<!DOCTYPE html>
     button { background: #2e7d32; color: white; border: none; padding: 14px 32px; margin: 12px; font-size: 1.15em; border-radius: 8px; cursor: pointer; min-width: 220px; }
     button:hover { background: #388e3c; }
     button.reveal { background: #d32f2f; font-size: 1.4em; padding: 18px 48px; }
+    button.start-game { background: #ff5555; font-size: 1.3em; padding: 16px 40px; margin: 20px; }
     select, input { padding: 12px; font-size: 1.1em; margin: 10px; width: 90%; max-width: 360px; border-radius: 8px; background: #1a1a33; color: white; border: 1px solid #444; }
     #player-card { background: #1a1a33; border: 3px solid #3366ff; border-radius: 12px; padding: 28px 20px; margin: 30px auto; max-width: 480px; display: none; }
     #player-name { font-size: 2.3em; color: #88ccff; margin-bottom: 16px; }
@@ -48,18 +49,18 @@ Made By Oshi<!DOCTYPE html>
 <div id="lobby" style="display:none;">
   <h2>Room Code: <span id="roomCodeDisplay"></span></h2>
   <div id="players-list">Waiting for players...</div>
-  <div id="reveal-section" style="display:none;">
-    <button class="reveal" onclick="revealGame()">Reveal Imposter & Word (Host)</button>
-  </div>
+  <button id="start-game-btn" class="start-game" style="display:none;" onclick="startGame()">Start Game (Host)</button>
 </div>
 
 <div id="game" style="display:none;">
-  <div id="status">Look privately! Click "I've Seen It" when ready.</div>
+  <div id="status">Look privately at your card!</div>
   <div id="player-card">
     <div id="player-name"></div>
     <div id="role-text"></div>
     <div id="secret-word-container"><span id="secretWord"></span></div>
-    <button id="seenBtn">I've Seen It</button>
+  </div>
+  <div id="reveal-section" style="display:none;">
+    <button class="reveal" onclick="revealGame()">Reveal Imposter & Word (Host)</button>
   </div>
 </div>
 
@@ -207,52 +208,15 @@ function showScreen(id) {
   document.getElementById(id).style.display = 'block';
 }
 
-// Socket.IO setup with reconnection
-const socket = io({
-  reconnection: true,
-  reconnectionAttempts: 30,
-  reconnectionDelay: 300,
-  reconnectionDelayMax: 1500,
-  randomizationFactor: 0.5,
-  timeout: 30000,
-  transports: ['polling', 'websocket'],
-  forceNew: true,
-  upgrade: true,
-  rememberUpgrade: false,
-  path: '/socket.io/',
-  autoConnect: true
-});
+const socket = io();
 
-// Heartbeat
+// Heartbeat for Render free tier
 setInterval(() => {
-  if (socket.connected) {
-    socket.emit('ping');
-  }
+  if (socket.connected) socket.emit('ping');
 }, 15000);
 
-// Connection events
-socket.on('connect', () => {
-  console.log('Socket connected - ID:', socket.id);
-  document.getElementById('error-msg').textContent = 'Connected! Ready.';
-});
-
-socket.on('connect_error', (err) => {
-  console.error('Connect error:', err.message);
-  document.getElementById('error-msg').textContent = 'Connection failed - retrying...';
-});
-
-socket.on('disconnect', (reason) => {
-  console.log('Disconnected:', reason);
-  document.getElementById('error-msg').textContent = 'Disconnected - reconnecting...';
-});
-
-socket.on('reconnect', (attempt) => {
-  console.log('Reconnected after attempt', attempt);
-  document.getElementById('error-msg').textContent = '';
-  if (currentRoom) {
-    socket.emit('joinRoom', { code: currentRoom, name: document.getElementById('joinName').value.trim() || 'Player' });
-  }
-});
+socket.on('connect', () => console.log('Socket connected - ID:', socket.id));
+socket.on('disconnect', (reason) => console.log('Disconnected:', reason));
 
 // Game events
 socket.on('roomCreated', ({ code }) => {
@@ -260,28 +224,27 @@ socket.on('roomCreated', ({ code }) => {
   document.getElementById('roomCodeDisplay').textContent = code;
   showScreen('lobby');
   isHost = true;
-  document.getElementById('error-msg').textContent = '';
 });
 
 socket.on('joined', ({ code }) => {
   currentRoom = code;
   document.getElementById('roomCodeDisplay').textContent = code;
   showScreen('lobby');
-  document.getElementById('error-msg').textContent = '';
 });
 
 socket.on('playersUpdate', (updatedPlayers) => {
   players = updatedPlayers;
   let html = '<h3>Players:</h3>';
   players.forEach(p => {
-    html += `<div>${p.name}${p.seen ? ' ✓' : ''}</div>`;
+    html += `<div>${p.name}</div>`;
   });
   document.getElementById('players-list').innerHTML = html || 'Waiting for players...';
 
-  if (isHost && players.length >= 3 && players.every(p => p.seen)) {
-    document.getElementById('reveal-section').style.display = 'block';
+  // Show Start Game button to host when ≥3 players
+  if (isHost && players.length >= 3) {
+    document.getElementById('start-game-btn').style.display = 'block';
   } else {
-    document.getElementById('reveal-section').style.display = 'none';
+    document.getElementById('start-game-btn').style.display = 'none';
   }
 });
 
@@ -301,12 +264,11 @@ socket.on('gameStarted', ({ imposterIndex, secret }) => {
   }
 
   document.getElementById('player-card').style.display = 'block';
-  document.getElementById('seenBtn').onclick = () => {
-    socket.emit('markSeen', currentRoom);
-    document.getElementById('secret-word-container').classList.add('visible');
-    document.getElementById('seenBtn').style.display = 'none';
-    document.getElementById('status').textContent = 'Seen! Waiting for others...';
-  };
+
+  // Show reveal button to host
+  if (isHost) {
+    document.getElementById('reveal-section').style.display = 'block';
+  }
 });
 
 socket.on('gameRevealed', ({ imposterName, secret }) => {
@@ -331,8 +293,11 @@ function joinRoom() {
   const code = document.getElementById('joinCode').value.trim().toUpperCase();
   const name = document.getElementById('joinName').value.trim();
   if (!code || !name) return alert('Fill both fields');
-  document.getElementById('error-msg').textContent = 'Joining...';
   socket.emit('joinRoom', { code, name });
+}
+
+function startGame() {
+  socket.emit('startGame', currentRoom);
 }
 
 function revealGame() {
