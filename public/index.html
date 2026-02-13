@@ -364,7 +364,7 @@ const categories = {
   aussie_slang: ["Arvo", "Servo", "Maccas", "Brekkie", "Snag", "Thongs", "Bogan", "Esky", "Ute", "No worries"]
 };
 
-const MIN_CATEGORY_ITEMS = 150;
+const MIN_CATEGORY_ITEMS = 300;
 
 function ensureMinimumCategorySize(categoryMap, minItems) {
   Object.entries(categoryMap).forEach(([key, values]) => {
@@ -492,7 +492,7 @@ function createRoom() {
 }
 
 function joinRoom() {
-  const code = document.getElementById('joinCode').value.trim().toUpperCase();
+  const code = document.getElementById('joinCode').value.trim();
   const name = document.getElementById('joinName').value.trim();
   if (!code || !name) return alert('Fill both fields');
   socket.emit('joinRoom', { code, name });

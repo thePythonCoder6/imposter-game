@@ -149,7 +149,7 @@ const categories = {
   aussie_slang: ["Arvo", "Servo", "Maccas", "Brekkie", "Snag", "Thongs", "Bogan", "Esky", "Ute", "No worries"]
 };
 
-const MIN_CATEGORY_ITEMS = 150;
+const MIN_CATEGORY_ITEMS = 300;
 
 function ensureMinimumCategorySize(categoryMap, minItems) {
   Object.entries(categoryMap).forEach(([key, values]) => {
@@ -173,11 +173,18 @@ ensureMinimumCategorySize(categories, MIN_CATEGORY_ITEMS);
 // In-memory rooms
 const rooms = {};
 
+
+function normalizeRoomCode(code) {
+  return String(code || '').trim().toLowerCase();
+}
+
+
 io.on('connection', (socket) => {
   console.log(`New connection: ${socket.id}`);
 
   socket.on('createRoom', ({ name, category }) => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const displayCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const code = normalizeRoomCode(displayCode);
     const wordList = categories[category] || categories.food;
     const secret = wordList[Math.floor(Math.random() * wordList.length)];
 
@@ -190,12 +197,12 @@ io.on('connection', (socket) => {
     };
 
     socket.join(code);
-    socket.emit('roomCreated', { code });
+    socket.emit('roomCreated', { code: displayCode });
     io.to(code).emit('playersUpdate', rooms[code].players);
   });
 
   socket.on('joinRoom', ({ code, name }) => {
-    code = code.toUpperCase();
+    code = normalizeRoomCode(code);
     const room = rooms[code];
     if (!room) return socket.emit('error', 'Room not found');
     if (room.players.some(p => p.name === name)) return socket.emit('error', 'Name already taken');
@@ -203,11 +210,11 @@ io.on('connection', (socket) => {
     room.players.push({ id: socket.id, name });
     socket.join(code);
     io.to(code).emit('playersUpdate', room.players);
-    socket.emit('joined', { code });
+    socket.emit('joined', { code: code.toUpperCase() });
   });
 
   socket.on('startGame', (code) => {
-    code = code.toUpperCase();
+    code = normalizeRoomCode(code);
     const room = rooms[code];
     if (!room || socket.id !== room.host) return socket.emit('error', 'Only host can start game');
     if (room.players.length < 3) return socket.emit('error', 'Need at least 3 players');
@@ -221,7 +228,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('reveal', (code) => {
-    code = code.toUpperCase();
+    code = normalizeRoomCode(code);
     const room = rooms[code];
     if (!room || socket.id !== room.host) return socket.emit('error', 'Only host can reveal');
 
