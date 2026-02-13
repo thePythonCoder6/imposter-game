@@ -1,146 +1,239 @@
-Made By Oshi<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Imposter Who? – Online Multiplayer</title>
   <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #151d33;
+      --panel-2: #1b2542;
+      --text: #e6ecff;
+      --muted: #9bb0e7;
+      --accent: #6f8cff;
+      --accent-2: #59d4ff;
+      --danger: #ff5f7a;
+      --success: #39c27f;
+      --border: rgba(163, 180, 255, 0.22);
+    }
+
+    * { box-sizing: border-box; }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #0f0f1a;
-      color: #e0e0ff;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at 20% 0%, #1a2450 0%, var(--bg) 45%);
+      color: var(--text);
       margin: 0;
-      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(760px, 100%);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(6px);
       text-align: center;
     }
-    h1 { color: #ff5555; }
+
+    h1 {
+      margin: 0 0 20px;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      color: #ff8fa1;
+      letter-spacing: 0.02em;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      color: #c8d8ff;
+    }
+
+    .screen {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      animation: fadeIn 220ms ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+    }
+
     button {
-      background: #2e7d32;
-      color: white;
+      background: linear-gradient(180deg, #57d083, #34a366);
+      color: #fff;
       border: none;
-      padding: 14px 32px;
-      margin: 12px;
-      font-size: 1.15em;
-      border-radius: 8px;
+      padding: 13px 24px;
+      margin: 4px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 10px;
       cursor: pointer;
       min-width: 220px;
+      transition: transform 120ms ease, filter 120ms ease;
     }
-    button:hover { background: #388e3c; }
+
+    button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    button.secondary {
+      background: linear-gradient(180deg, #5f75b8, #4f63a0);
+    }
+
     button.reveal {
-      background: #d32f2f;
-      font-size: 1.4em;
-      padding: 18px 48px;
+      background: linear-gradient(180deg, #ff6f8b, #e14b68);
+      font-size: 1.05rem;
     }
+
     button.start-game {
-      background: #ff5555;
-      font-size: 1.3em;
-      padding: 16px 40px;
-      margin: 20px;
+      background: linear-gradient(180deg, #7a8eff, #5f74e8);
+      font-size: 1.05rem;
     }
+
     select, input {
       padding: 12px;
-      font-size: 1.1em;
-      margin: 10px;
-      width: 90%;
-      max-width: 360px;
-      border-radius: 8px;
-      background: #1a1a33;
-      color: white;
-      border: 1px solid #444;
+      font-size: 1rem;
+      width: min(420px, 100%);
+      border-radius: 10px;
+      background: var(--panel-2);
+      color: #fff;
+      border: 1px solid var(--border);
+      outline: none;
     }
+
+    select:focus, input:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(89, 212, 255, 0.2);
+    }
+
     #player-card {
-      background: #1a1a33;
-      border: 3px solid #3366ff;
+      background: #0f1730;
+      border: 2px solid var(--accent);
       border-radius: 12px;
-      padding: 28px 20px;
-      margin: 30px auto;
-      max-width: 480px;
+      padding: 22px 16px;
+      margin: 18px auto;
+      max-width: 500px;
       display: none;
     }
-    #player-name { font-size: 2.3em; color: #88ccff; margin-bottom: 16px; }
+
+    #player-name { font-size: 2rem; color: #9ed0ff; margin-bottom: 10px; }
+
     #secret-word-container {
-      font-size: 3.2em;
-      font-weight: bold;
-      margin: 24px 0;
+      font-size: clamp(1.8rem, 6vw, 3rem);
+      font-weight: 800;
+      margin: 18px 0;
       min-height: 1.2em;
-      padding: 16px;
+      padding: 12px;
       border-radius: 10px;
+      background: rgba(111, 140, 255, 0.1);
     }
-    .imposter {
-      color: #ff4444;
-      background: #000;
-    }
+
+    .imposter { color: #ff627f; background: rgba(0, 0, 0, 0.45); }
+
     #status {
-      font-size: 1.4em;
-      background: #202040;
-      padding: 18px;
+      font-size: 1.1rem;
+      background: #1a2548;
+      padding: 14px;
       border-radius: 10px;
-      margin: 20px 0;
-      min-height: 90px;
+      margin: 10px 0 16px;
+      min-height: 66px;
+      color: #d7e3ff;
     }
+
     #players-list {
-      font-size: 1.15em;
-      margin: 16px 0;
+      font-size: 1.05rem;
+      margin: 12px 0;
       line-height: 1.5;
+      color: var(--muted);
     }
+
     #error-msg {
-      color: #ffcc00;
-      font-weight: bold;
-      margin: 10px 0;
-      background: #333;
+      color: #ffd56f;
+      font-weight: 700;
+      margin: 10px auto 0;
+      background: rgba(255, 213, 111, 0.12);
       padding: 10px;
       border-radius: 8px;
+      width: min(420px, 100%);
+    }
+
+    @media (max-width: 600px) {
+      .app { padding: 18px; }
+      .screen { padding: 14px; }
+      button { min-width: 180px; width: 100%; }
     }
   </style>
 </head>
 <body>
+  <main class="app">
+    <h1>Imposter Who? – Online Multiplayer</h1>
 
-<h1>Imposter Who? – Online Multiplayer</h1>
+    <div id="menu" class="screen">
+      <div class="stack">
+        <button onclick="showScreen('create')">Create Room</button>
+        <button onclick="showScreen('join')">Join Room</button>
+      </div>
+    </div>
 
-<div id="menu">
-  <button onclick="showScreen('create')">Create Room</button><br><br>
-  <button onclick="showScreen('join')">Join Room</button>
-</div>
+    <div id="create" class="screen" style="display:none;">
+      <div class="stack">
+        <select id="category"></select>
+        <input id="createName" placeholder="Your name" value="Host">
+        <button onclick="createRoom()">Create</button>
+        <button class="secondary" onclick="showScreen('menu')">Back</button>
+      </div>
+    </div>
 
-<div id="create" style="display:none;">
-  <select id="category"></select><br>
-  <input id="createName" placeholder="Your name" value="Host"><br>
-  <button onclick="createRoom()">Create</button><br><br>
-  <button onclick="showScreen('menu')">Back</button>
-</div>
+    <div id="join" class="screen" style="display:none;">
+      <div class="stack">
+        <input id="joinCode" placeholder="Room code (e.g. ABCD12)" maxlength="6">
+        <input id="joinName" placeholder="Your name">
+        <button onclick="joinRoom()">Join</button>
+        <button class="secondary" onclick="showScreen('menu')">Back</button>
+        <div id="error-msg">Enter code and name, then click Join</div>
+      </div>
+    </div>
 
-<div id="join" style="display:none;">
-  <input id="joinCode" placeholder="Room code (e.g. ABCD12)" maxlength="6"><br>
-  <input id="joinName" placeholder="Your name"><br>
-  <button onclick="joinRoom()">Join</button><br><br>
-  <button onclick="showScreen('menu')">Back</button>
-  <div id="error-msg">Enter code and name, then click Join</div>
-</div>
+    <div id="lobby" class="screen" style="display:none;">
+      <h2>Room Code: <span id="roomCodeDisplay"></span></h2>
+      <div id="players-list">Waiting for players...</div>
+      <button id="start-game-btn" class="start-game" style="display:none;" onclick="startGame()">Start Game (Host)</button>
+    </div>
 
-<div id="lobby" style="display:none;">
-  <h2>Room Code: <span id="roomCodeDisplay"></span></h2>
-  <div id="players-list">Waiting for players...</div>
-  <button id="start-game-btn" class="start-game" style="display:none;" onclick="startGame()">Start Game (Host)</button>
-</div>
+    <div id="game" class="screen" style="display:none;">
+      <div id="status">Your card is shown below</div>
+      <div id="player-card">
+        <div id="player-name"></div>
+        <div id="role-text"></div>
+        <div id="secret-word-container"><span id="secretWord"></span></div>
+      </div>
+      <div id="reveal-section" style="display:none;">
+        <button class="reveal" onclick="revealGame()">Reveal Imposter & Word (Host)</button>
+      </div>
+    </div>
 
-<div id="game" style="display:none;">
-  <div id="status">Your card is shown below</div>
-  <div id="player-card">
-    <div id="player-name"></div>
-    <div id="role-text"></div>
-    <div id="secret-word-container"><span id="secretWord"></span></div>
-  </div>
-  <div id="reveal-section" style="display:none;">
-    <button class="reveal" onclick="revealGame()">Reveal Imposter & Word (Host)</button>
-  </div>
-</div>
-
-<div id="result" style="display:none;">
-  <h2>Game Over</h2>
-  <p id="impReveal"></p>
-  <p id="wordReveal"></p>
-  <button onclick="location.reload()">Play Again</button>
-</div>
+    <div id="result" class="screen" style="display:none;">
+      <h2>Game Over</h2>
+      <p id="impReveal"></p>
+      <p id="wordReveal"></p>
+      <button onclick="location.reload()">Play Again</button>
+    </div>
+  </main>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
