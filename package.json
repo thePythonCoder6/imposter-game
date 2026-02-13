@@ -1,8 +1,9 @@
 {
   "name": "imposter-game",
   "version": "1.0.0",
-  "description": "Online Imposter Who? game",
+  "description": "Online multiplayer Imposter Who? game",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
@@ -11,6 +12,8 @@
     "socket.io": "^4.7.5"
   },
   "engines": {
-    "node": ">=18"
-  }
+    "node": ">=18.0.0"
+  },
+  "author": "osh",
+  "license": "ISC"
 }
