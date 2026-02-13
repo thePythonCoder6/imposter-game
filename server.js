@@ -14,15 +14,15 @@ const io = new Server(server, {
   pingInterval: 25000
 });
 
-// Serve static files from 'public' folder
+// Serve static files from 'public'
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve index.html for all routes
+// Catch-all route → serve index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// All categories (full list from your original game)
+// Full categories object (same as client)
 const categories = {
   food: ["Pizza", "Burger", "Sushi", "Tacos", "Pasta", "Ramen", "Curry", "Pho", "Dim Sum", "Paella", "Butter Chicken", "Pad Thai", "Lasagna", "Burrito", "Falafel", "Shawarma", "Kebab", "Poutine", "Fish & Chips", "Bangers & Mash", "Pie Floater", "Hamburger", "Hot Dog", "Nachos", "Quesadilla", "Enchilada", "Chimichanga", "Biryani", "Laksa", "Tom Yum", "Satay", "Spring Rolls", "Dumplings", "Gyros", "Souvlaki", "Pierogi", "Ceviche", "Poke Bowl", "Bibimbap", "Katsu Curry", "Carbonara", "Risotto", "Tagine", "Jollof Rice", "Feijoada", "Empanada", "Schnitzel", "Paella", "Goulash"],
   movies: ["The Lion King", "Frozen", "Toy Story", "Finding Nemo", "The Incredibles", "Moana", "Encanto", "Coco", "Inside Out", "Up", "Wall-E", "Ratatouille", "The Avengers", "Spider-Man", "Batman", "Harry Potter", "Star Wars", "Jurassic Park", "Titanic", "Forrest Gump", "The Matrix", "Inception", "Pulp Fiction", "The Godfather", "Jaws", "E.T.", "Back to the Future", "Indiana Jones", "Ghostbusters", "Grease", "The Sound of Music", "Beauty and the Beast", "Aladdin", "The Little Mermaid", "Shrek", "Kung Fu Panda", "Despicable Me", "Minions", "Cars", "Monsters Inc", "Zootopia", "Big Hero 6", "Wreck-It Ralph", "Tangled", "Brave", "The Princess and the Frog", "Mulan", "Hercules", "Cinderella", "Snow White"],
@@ -71,7 +71,7 @@ const categories = {
   scientists_inventors: ["Albert Einstein", "Isaac Newton", "Marie Curie", "Thomas Edison", "Nikola Tesla", "Alexander Graham Bell", "Tim Berners-Lee", "Steve Jobs", "Bill Gates", "Ada Lovelace", "Galileo Galilei", "Stephen Hawking", "Charles Darwin", "Jane Goodall", "Alan Turing", "Rosalind Franklin"],
   artists_painters: ["Leonardo da Vinci", "Vincent van Gogh", "Pablo Picasso", "Claude Monet", "Michelangelo", "Rembrandt", "Frida Kahlo", "Salvador Dali", "Georgia O'Keeffe", "Banksy", "Andy Warhol", "Jackson Pollock", "Henri Matisse", "Johannes Vermeer", "Raphael"],
   politicians: ["Barack Obama", "Joe Biden", "Donald Trump", "Angela Merkel", "Jacinda Ardern", "Winston Churchill", "Abraham Lincoln", "Nelson Mandela", "Margaret Thatcher", "John F Kennedy", "Malcolm Turnbull", "Scott Morrison", "Anthony Albanese"],
-  celebrities: ["Taylor Swift", "Beyonce", "Kim Kardashian", "Kylie Jenner", "MrBeast", "PewDiePie", "Logan Paul", "Charli D'Amelio", "MrBeast", "Dwayne Johnson", "Ariana Grande", "Selena Gomez", "Billie Eilish"],
+  celebrities: ["Taylor Swift", "Beyonce", "Kim Kardashian", "Kylie Jenner", "MrBeast", "PewDiePie", "Logan Paul", "Charli D'Amelio", "Dwayne Johnson", "Ariana Grande", "Selena Gomez", "Billie Eilish"],
   family_members: ["Mum", "Dad", "Brother", "Sister", "Grandma", "Grandpa", "Aunt", "Uncle", "Cousin", "Baby", "Son", "Daughter", "Wife", "Husband", "Niece", "Nephew"],
   occupations_kids_version: ["Astronaut", "Clown", "Superhero", "Pirate", "Princess", "Knight", "Wizard", "Fairy", "Detective", "Chef", "Pilot", "Firefighter", "Doctor", "Teacher", "Vet", "Police Officer", "Builder", "Artist", "Musician", "Dancer"],
   countries: ["Australia", "United States", "Canada", "United Kingdom", "France", "Italy", "Japan", "China", "India", "Brazil", "Germany", "Spain", "Mexico", "New Zealand", "South Africa", "Egypt", "Russia", "South Korea", "Argentina", "Greece"],
@@ -135,8 +135,8 @@ const categories = {
   rock_bands: ["The Beatles", "Led Zeppelin", "Queen", "Pink Floyd", "Rolling Stones", "Nirvana", "AC/DC", "Guns N' Roses", "Metallica", "Foo Fighters"]
 };
 
-// In-memory rooms storage
-const rooms = {}; // code → { secret, players: [{id, name}], status, host, imposter }
+// In-memory rooms
+const rooms = {};
 
 io.on('connection', (socket) => {
   console.log(`New connection: ${socket.id}`);
@@ -196,11 +196,10 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('ping', () => {}); // Heartbeat
+  socket.on('ping', () => {});
 
   socket.on('disconnect', () => {
     console.log(`Disconnected: ${socket.id}`);
-    // Optional: clean up rooms if host disconnects, etc.
   });
 });
 
