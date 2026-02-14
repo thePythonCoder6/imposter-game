@@ -172,7 +172,7 @@ ensureMinimumCategorySize(categories, MIN_CATEGORY_ITEMS);
 
 // In-memory rooms
 const rooms = {};
-
+const socketToRoom = {};
 
 function normalizeRoomCode(code) {
   return String(code || '').trim().toLowerCase();
@@ -193,10 +193,12 @@ io.on('connection', (socket) => {
       players: [{ id: socket.id, name }],
       status: 'lobby',
       host: socket.id,
-      imposter: null
+      imposter: null,
+      voiceParticipants: new Set()
     };
 
     socket.join(code);
+    socketToRoom[socket.id] = code;
     socket.emit('roomCreated', { code: displayCode });
     io.to(code).emit('playersUpdate', rooms[code].players);
   });
@@ -209,6 +211,7 @@ io.on('connection', (socket) => {
 
     room.players.push({ id: socket.id, name });
     socket.join(code);
+    socketToRoom[socket.id] = code;
     io.to(code).emit('playersUpdate', room.players);
     socket.emit('joined', { code: code.toUpperCase() });
   });
@@ -238,9 +241,59 @@ io.on('connection', (socket) => {
     });
   });
 
+
+  socket.on('voiceJoin', (roomCode) => {
+    const code = normalizeRoomCode(roomCode) || socketToRoom[socket.id];
+    const room = rooms[code];
+    if (!room) return;
+
+    if (!room.voiceParticipants) room.voiceParticipants = new Set();
+    room.voiceParticipants.add(socket.id);
+
+    socket.to(code).emit('voiceUserJoined', { socketId: socket.id });
+    socket.emit('voiceParticipants', {
+      participants: Array.from(room.voiceParticipants)
+    });
+  });
+
+  socket.on('voiceLeave', (roomCode) => {
+    const code = normalizeRoomCode(roomCode) || socketToRoom[socket.id];
+    const room = rooms[code];
+    if (!room || !room.voiceParticipants) return;
+
+    room.voiceParticipants.delete(socket.id);
+    socket.to(code).emit('voiceUserLeft', { socketId: socket.id });
+  });
+
+  socket.on('voiceSignal', ({ roomCode, to, signal }) => {
+    const code = normalizeRoomCode(roomCode) || socketToRoom[socket.id];
+    const room = rooms[code];
+    if (!room || !to || !signal) return;
+
+    io.to(to).emit('voiceSignal', {
+      from: socket.id,
+      signal
+    });
+  });
+
   socket.on('ping', () => {});
 
   socket.on('disconnect', () => {
+    const code = socketToRoom[socket.id];
+    if (code && rooms[code]) {
+      const room = rooms[code];
+      room.players = room.players.filter(p => p.id !== socket.id);
+      io.to(code).emit('playersUpdate', room.players);
+
+      if (room.voiceParticipants) {
+        room.voiceParticipants.delete(socket.id);
+        socket.to(code).emit('voiceUserLeft', { socketId: socket.id });
+      }
+
+      if (room.players.length === 0) delete rooms[code];
+    }
+
+    delete socketToRoom[socket.id];
     console.log(`Disconnected: ${socket.id}`);
   });
 });

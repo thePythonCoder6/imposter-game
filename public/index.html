@@ -172,6 +172,47 @@
       width: min(420px, 100%);
     }
 
+
+    #voice-chat {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #111a35;
+      text-align: left;
+      display: none;
+    }
+
+    .voice-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    #voice-status {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    #voice-remotes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      color: #c8d8ff;
+      font-size: 0.9rem;
+    }
+
+    .voice-pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(111, 140, 255, 0.2);
+      border: 1px solid var(--border);
+    }
+
     @media (max-width: 600px) {
       .app { padding: 18px; }
       .screen { padding: 14px; }
@@ -214,6 +255,18 @@
       <div id="players-list">Waiting for players...</div>
       <button id="start-game-btn" class="start-game" style="display:none;" onclick="startGame()">Start Game (Host)</button>
     </div>
+
+    <section id="voice-chat">
+      <h3>Group Voice Chat</h3>
+      <div class="voice-row">
+        <button id="voice-join-btn" onclick="joinVoiceCall()">Join Voice</button>
+        <button id="voice-leave-btn" class="secondary" onclick="leaveVoiceCall()" style="display:none;">Leave Voice</button>
+        <button id="voice-mute-btn" class="secondary" onclick="toggleMute()" style="display:none;">Mute</button>
+      </div>
+      <div id="voice-status">Voice chat is off</div>
+      <div id="voice-remotes"></div>
+      <div id="voice-audios" style="display:none;"></div>
+    </section>
 
     <div id="game" class="screen" style="display:none;">
       <div id="status">Your card is shown below</div>
@@ -409,11 +462,16 @@ let currentRoom = '';
 let isHost = false;
 let players = [];
 
+let localVoiceStream = null;
+let isMuted = false;
+const peerConnections = {};
+
 // Screen switcher
 function showScreen(id) {
   document.querySelectorAll('#menu, #create, #join, #lobby, #game, #result')
     .forEach(el => el.style.display = 'none');
   document.getElementById(id).style.display = 'block';
+  updateVoicePanelVisibility(id);
 }
 
 const socket = io();
@@ -491,6 +549,196 @@ socket.on('gameRevealed', ({ imposterName, secret }) => {
 socket.on('error', msg => {
   alert(msg || 'An error occurred');
   document.getElementById('error-msg').textContent = msg || 'Error - try refreshing page';
+});
+
+
+function updateVoicePanelVisibility(screenId) {
+  const panel = document.getElementById('voice-chat');
+  if (!panel) return;
+
+  const inRoomScreen = screenId === 'lobby' || screenId === 'game';
+  panel.style.display = currentRoom && inRoomScreen ? 'block' : 'none';
+}
+
+function setVoiceStatus(message) {
+  document.getElementById('voice-status').textContent = message;
+}
+
+function renderVoiceParticipants(participantIds) {
+  const wrap = document.getElementById('voice-remotes');
+  const others = participantIds.filter(id => id !== socket.id);
+
+  if (!others.length) {
+    wrap.innerHTML = '<span class="voice-pill">No one else in voice yet</span>';
+    return;
+  }
+
+  wrap.innerHTML = others.map(id => `<span class="voice-pill">User ${id.slice(0, 6)}</span>`).join('');
+}
+
+function createPeerConnection(remoteSocketId, isInitiator) {
+  if (peerConnections[remoteSocketId]) return peerConnections[remoteSocketId];
+
+  const pc = new RTCPeerConnection({
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+  });
+
+  peerConnections[remoteSocketId] = pc;
+
+  if (localVoiceStream) {
+    localVoiceStream.getTracks().forEach(track => pc.addTrack(track, localVoiceStream));
+  }
+
+  pc.onicecandidate = ({ candidate }) => {
+    if (!candidate) return;
+    socket.emit('voiceSignal', {
+      roomCode: currentRoom,
+      to: remoteSocketId,
+      signal: { candidate }
+    });
+  };
+
+  pc.ontrack = ({ streams }) => {
+    const container = document.getElementById('voice-audios');
+    let audio = document.getElementById(`audio-${remoteSocketId}`);
+    if (!audio) {
+      audio = document.createElement('audio');
+      audio.id = `audio-${remoteSocketId}`;
+      audio.autoplay = true;
+      container.appendChild(audio);
+    }
+    audio.srcObject = streams[0];
+  };
+
+  if (isInitiator) {
+    pc.createOffer()
+      .then(offer => pc.setLocalDescription(offer))
+      .then(() => {
+        socket.emit('voiceSignal', {
+          roomCode: currentRoom,
+          to: remoteSocketId,
+          signal: { sdp: pc.localDescription }
+        });
+      })
+      .catch(err => console.error('Offer error:', err));
+  }
+
+  return pc;
+}
+
+async function joinVoiceCall() {
+  if (!currentRoom) return alert('Join a room first');
+  if (localVoiceStream) return;
+
+  try {
+    localVoiceStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    isMuted = false;
+
+    document.getElementById('voice-join-btn').style.display = 'none';
+    document.getElementById('voice-leave-btn').style.display = 'inline-block';
+    document.getElementById('voice-mute-btn').style.display = 'inline-block';
+    document.getElementById('voice-mute-btn').textContent = 'Mute';
+    setVoiceStatus('Voice chat connected');
+
+    socket.emit('voiceJoin', currentRoom);
+  } catch (err) {
+    console.error(err);
+    alert('Could not access microphone. Please allow mic permissions.');
+  }
+}
+
+function closePeer(remoteSocketId) {
+  const pc = peerConnections[remoteSocketId];
+  if (pc) {
+    pc.close();
+    delete peerConnections[remoteSocketId];
+  }
+
+  const audio = document.getElementById(`audio-${remoteSocketId}`);
+  if (audio) audio.remove();
+}
+
+function leaveVoiceCall() {
+  if (!localVoiceStream) return;
+
+  socket.emit('voiceLeave', currentRoom);
+  Object.keys(peerConnections).forEach(closePeer);
+
+  localVoiceStream.getTracks().forEach(track => track.stop());
+  localVoiceStream = null;
+  isMuted = false;
+
+  document.getElementById('voice-join-btn').style.display = 'inline-block';
+  document.getElementById('voice-leave-btn').style.display = 'none';
+  document.getElementById('voice-mute-btn').style.display = 'none';
+  document.getElementById('voice-remotes').innerHTML = '';
+  setVoiceStatus('Voice chat is off');
+}
+
+function toggleMute() {
+  if (!localVoiceStream) return;
+
+  isMuted = !isMuted;
+  localVoiceStream.getAudioTracks().forEach(track => {
+    track.enabled = !isMuted;
+  });
+  document.getElementById('voice-mute-btn').textContent = isMuted ? 'Unmute' : 'Mute';
+  setVoiceStatus(isMuted ? 'Muted' : 'Voice chat connected');
+}
+
+socket.on('voiceParticipants', ({ participants }) => {
+  renderVoiceParticipants(participants);
+  participants
+    .filter(id => id !== socket.id)
+    .forEach(id => createPeerConnection(id, true));
+});
+
+socket.on('voiceUserJoined', ({ socketId }) => {
+  if (!localVoiceStream || socketId === socket.id) return;
+
+  createPeerConnection(socketId, true);
+
+  const pills = [...document.querySelectorAll('#voice-remotes .voice-pill')].map(el => el.textContent);
+  if (!pills.some(text => text.includes(socketId.slice(0, 6)))) {
+    const wrap = document.getElementById('voice-remotes');
+    if (wrap.textContent.includes('No one else')) wrap.innerHTML = '';
+    wrap.insertAdjacentHTML('beforeend', `<span class="voice-pill">User ${socketId.slice(0, 6)}</span>`);
+  }
+});
+
+socket.on('voiceUserLeft', ({ socketId }) => {
+  closePeer(socketId);
+  const wrap = document.getElementById('voice-remotes');
+  wrap.innerHTML = [...Object.keys(peerConnections)].map(id => `<span class="voice-pill">User ${id.slice(0, 6)}</span>`).join('');
+  if (!wrap.innerHTML) wrap.innerHTML = '<span class="voice-pill">No one else in voice yet</span>';
+});
+
+socket.on('voiceSignal', async ({ from, signal }) => {
+  if (!localVoiceStream) return;
+
+  const pc = createPeerConnection(from, false);
+
+  if (signal.sdp) {
+    await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+
+    if (signal.sdp.type === 'offer') {
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit('voiceSignal', {
+        roomCode: currentRoom,
+        to: from,
+        signal: { sdp: pc.localDescription }
+      });
+    }
+  }
+
+  if (signal.candidate) {
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+    } catch (err) {
+      console.error('ICE add error', err);
+    }
+  }
 });
 
 function createRoom() {
