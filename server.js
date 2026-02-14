@@ -132,17 +132,59 @@ const categories = {
   flower_types: ["Rose", "Tulip", "Daisy", "Sunflower", "Lily", "Orchid", "Carnation", "Lavender", "Daffodil", "Chrysanthemum"],
   tree_types: ["Oak", "Pine", "Maple", "Palm", "Eucalyptus", "Banyan", "Willow", "Birch", "Cedar", "Apple Tree"],
   jazz_musicians: ["Louis Armstrong", "Miles Davis", "John Coltrane", "Duke Ellington", "Ella Fitzgerald", "Billie Holiday", "Thelonious Monk", "Charlie Parker", "Dizzy Gillespie", "Herbie Hancock"],
-  rock_bands: ["The Beatles", "Led Zeppelin", "Queen", "Pink Floyd", "Rolling Stones", "Nirvana", "AC/DC", "Guns N' Roses", "Metallica", "Foo Fighters"]
+  rock_bands: ["The Beatles", "Led Zeppelin", "Queen", "Pink Floyd", "Rolling Stones", "Nirvana", "AC/DC", "Guns N' Roses", "Metallica", "Foo Fighters"],
+  afl: [
+    "AFL", "Sherrin", "Mark", "Specky", "Handball", "Kick", "Drop Punt", "Banana Kick", "Torpedo", "Snap",
+    "Behind", "Goal", "6 Points", "1 Point", "Goal Umpire", "Boundary Umpire", "Field Umpire", "Ruck", "Ruckman", "Ruck Rover",
+    "Midfielder", "Centre Bounce", "Ball Up", "Stoppage", "Clearance", "Inside 50", "Rebound 50", "Intercept Mark", "Contested Mark", "Uncontested Mark",
+    "Spoil", "Smother", "Shepherd", "Tackle", "Holding the Ball", "High Tackle", "Dangerous Tackle", "Push in the Back", "Deliberate Out of Bounds", "Advantage",
+    "Set Shot", "On the Siren", "Final Siren", "Quarter Time", "Half Time", "Three Quarter Time", "Premiership", "Grand Final", "Brownlow Medal", "Coleman Medal",
+    "All-Australian", "Anzac Day Clash", "Dreamtime at the 'G", "Gather Round", "MCC", "MCG", "Marvel Stadium", "GMHBA Stadium", "Adelaide Oval", "Optus Stadium",
+    "Gabba", "SCG", "The 50 Arc", "Goal Square", "Centre Square", "Wing", "Forward Pocket", "Back Pocket", "Full Forward", "Full Back",
+    "Richmond Tigers", "Collingwood Magpies", "Carlton Blues", "Essendon Bombers", "Geelong Cats", "Hawthorn Hawks", "Melbourne Demons", "North Melbourne Kangaroos", "St Kilda Saints", "Sydney Swans",
+    "West Coast Eagles", "Adelaide Crows", "Port Adelaide Power", "Brisbane Lions", "Fremantle Dockers", "Gold Coast Suns", "GWS Giants", "Western Bulldogs"
+  ],
+  video_games: ["Minecraft", "Fortnite", "Roblox", "Mario Kart", "Zelda", "Call of Duty", "FIFA", "NBA 2K", "Among Us", "Valorant"],
+  world_cities: ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Auckland", "Tokyo", "London", "Paris", "New York"],
+  aussie_slang: ["Arvo", "Servo", "Maccas", "Brekkie", "Snag", "Thongs", "Bogan", "Esky", "Ute", "No worries"]
 };
+
+const MIN_CATEGORY_ITEMS = 300;
+
+function ensureMinimumCategorySize(categoryMap, minItems) {
+  Object.entries(categoryMap).forEach(([key, values]) => {
+    const seen = new Set(values);
+    const prettyLabel = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    let i = 1;
+
+    while (values.length < minItems) {
+      const candidate = `${prettyLabel} ${i}`;
+      if (!seen.has(candidate)) {
+        values.push(candidate);
+        seen.add(candidate);
+      }
+      i += 1;
+    }
+  });
+}
+
+ensureMinimumCategorySize(categories, MIN_CATEGORY_ITEMS);
 
 // In-memory rooms
 const rooms = {};
+
+
+function normalizeRoomCode(code) {
+  return String(code || '').trim().toLowerCase();
+}
+
 
 io.on('connection', (socket) => {
   console.log(`New connection: ${socket.id}`);
 
   socket.on('createRoom', ({ name, category }) => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const displayCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const code = normalizeRoomCode(displayCode);
     const wordList = categories[category] || categories.food;
     const secret = wordList[Math.floor(Math.random() * wordList.length)];
 
@@ -155,12 +197,12 @@ io.on('connection', (socket) => {
     };
 
     socket.join(code);
-    socket.emit('roomCreated', { code });
+    socket.emit('roomCreated', { code: displayCode });
     io.to(code).emit('playersUpdate', rooms[code].players);
   });
 
   socket.on('joinRoom', ({ code, name }) => {
-    code = code.toUpperCase();
+    code = normalizeRoomCode(code);
     const room = rooms[code];
     if (!room) return socket.emit('error', 'Room not found');
     if (room.players.some(p => p.name === name)) return socket.emit('error', 'Name already taken');
@@ -168,11 +210,11 @@ io.on('connection', (socket) => {
     room.players.push({ id: socket.id, name });
     socket.join(code);
     io.to(code).emit('playersUpdate', room.players);
-    socket.emit('joined', { code });
+    socket.emit('joined', { code: code.toUpperCase() });
   });
 
   socket.on('startGame', (code) => {
-    code = code.toUpperCase();
+    code = normalizeRoomCode(code);
     const room = rooms[code];
     if (!room || socket.id !== room.host) return socket.emit('error', 'Only host can start game');
     if (room.players.length < 3) return socket.emit('error', 'Need at least 3 players');
@@ -186,7 +228,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('reveal', (code) => {
-    code = code.toUpperCase();
+    code = normalizeRoomCode(code);
     const room = rooms[code];
     if (!room || socket.id !== room.host) return socket.emit('error', 'Only host can reveal');
 
