@@ -387,11 +387,21 @@ ensureMinimumCategorySize(categories, MIN_CATEGORY_ITEMS);
 
 // Populate category dropdown
 const catSelect = document.getElementById('category');
+
+function formatCategoryLabel(key) {
+  return key
+    .split('_')
+    .map(part => {
+      if (/^[a-z]{2,4}$/i.test(part) && part.toUpperCase() === 'AFL') return part.toUpperCase();
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
 Object.keys(categories).sort().forEach(key => {
   const opt = document.createElement('option');
   opt.value = key;
-  const label = key.replace(/_/g, ' ').toUpperCase();
-  opt.textContent = label;
+  opt.textContent = formatCategoryLabel(key);
   catSelect.appendChild(opt);
 });
 
