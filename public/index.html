@@ -6,31 +6,33 @@
   <title>Imposter Who? – Online Multiplayer</title>
   <style>
     :root {
-      --bg: #eef6ff;
-      --bg-2: #dfeeff;
-      --panel: rgba(236, 248, 255, 0.42);
-      --panel-2: rgba(230, 245, 255, 0.62);
-      --text: #10284a;
-      --muted: #2f4f7f;
-      --accent: #6a5dff;
-      --accent-2: #2be0ff;
-      --danger: #ff4fa8;
-      --success: #3a9eff;
-      --border: rgba(214, 235, 255, 0.82);
-      --shadow: 0 22px 56px rgba(43, 88, 160, 0.22);
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background:
-        radial-gradient(circle at 8% 6%, rgba(61, 235, 255, 0.38), transparent 38%),
-        radial-gradient(circle at 88% 12%, rgba(125, 105, 255, 0.34), transparent 44%),
-        radial-gradient(circle at 50% 92%, rgba(81, 196, 255, 0.24), transparent 42%),
-        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
-      color: var(--text);
-      margin: 0;
+      --bg: #d9ecff;
+      --bg-2: #bedbff;
+      --panel: rgba(213, 236, 255, 0.58);
+      --panel-2: rgba(198, 228, 255, 0.74);
+      --accent: #4f5dff;
+      --accent-2: #00f0ff;
+      --success: #1faeff;
+      --shadow: 0 30px 72px rgba(28, 92, 196, 0.34);
+        radial-gradient(circle at 4% 2%, rgba(0, 248, 255, 0.56), transparent 43%),
+        radial-gradient(circle at 96% 6%, rgba(92, 78, 255, 0.48), transparent 48%),
+        radial-gradient(circle at 50% 98%, rgba(59, 145, 255, 0.36), transparent 48%),
+      background: linear-gradient(180deg, rgba(232, 247, 255, 0.68), rgba(188, 222, 255, 0.44));
+      outline: 1px solid rgba(255, 255, 255, 0.42);
+      backdrop-filter: blur(34px) saturate(210%);
+      -webkit-backdrop-filter: blur(34px) saturate(210%);
+      outline: 1px solid rgba(255, 255, 255, 0.38);
+      background: linear-gradient(180deg, #2cf4ff, #4368ff);
+      box-shadow: 0 16px 34px rgba(44, 120, 255, 0.4);
+    button:hover { filter: brightness(1.1); transform: translateY(-2px) scale(1.01); }
+    button:active { transform: translateY(0) scale(0.995); box-shadow: 0 8px 16px rgba(44, 120, 255, 0.34); }
+      background: linear-gradient(180deg, #c0a7ff, #7256ff);
+      background: linear-gradient(180deg, #ff8fd2, #ff4aa6);
+      background: linear-gradient(180deg, #22f7ff, #00adff);
+      background: rgba(234, 246, 255, 0.88);
+      border: 1px solid rgba(176, 212, 255, 0.92);
+      background: rgba(206, 226, 255, 0.82);
+      background: rgba(232, 246, 255, 0.52);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -262,7 +264,7 @@
       padding: 14px;
       border-radius: 10px;
       border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.38);
+      background: rgba(232, 246, 255, 0.52);
       text-align: left;
       display: none;
     }
