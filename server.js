@@ -182,7 +182,7 @@ function normalizeRoomCode(code) {
 io.on('connection', (socket) => {
   console.log(`New connection: ${socket.id}`);
 
-  socket.on('createRoom', ({ name, category }) => {
+  socket.on('createRoom', ({ name, category, voiceEnabled }) => {
     const displayCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     const code = normalizeRoomCode(displayCode);
     const wordList = categories[category] || categories.food;
@@ -197,12 +197,13 @@ io.on('connection', (socket) => {
       voiceParticipants: new Set(),
       votes: {},
       voters: new Set(),
-      votingActive: false
+      votingActive: false,
+      voiceEnabled: voiceEnabled !== false
     };
 
     socket.join(code);
     socketToRoom[socket.id] = code;
-    socket.emit('roomCreated', { code: displayCode });
+    socket.emit('roomCreated', { code: displayCode, voiceEnabled: rooms[code].voiceEnabled });
     io.to(code).emit('playersUpdate', rooms[code].players);
   });
 
@@ -216,7 +217,7 @@ io.on('connection', (socket) => {
     socket.join(code);
     socketToRoom[socket.id] = code;
     io.to(code).emit('playersUpdate', room.players);
-    socket.emit('joined', { code: code.toUpperCase() });
+    socket.emit('joined', { code: code.toUpperCase(), voiceEnabled: room.voiceEnabled !== false });
   });
 
   socket.on('startGame', (code) => {
@@ -320,7 +321,7 @@ io.on('connection', (socket) => {
   socket.on('voiceJoin', (roomCode) => {
     const code = normalizeRoomCode(roomCode) || socketToRoom[socket.id];
     const room = rooms[code];
-    if (!room) return;
+    if (!room || room.voiceEnabled === false) return;
 
     if (!room.voiceParticipants) room.voiceParticipants = new Set();
     room.voiceParticipants.add(socket.id);

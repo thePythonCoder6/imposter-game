@@ -251,6 +251,25 @@
       line-height: 1.5;
     }
 
+
+    .checkbox-row {
+      width: min(420px, 100%);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      color: #dbe6ff;
+      font-size: 0.98rem;
+      padding: 6px 2px;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #59d4ff;
+      cursor: pointer;
+    }
+
     @media (max-width: 600px) {
       .app { padding: 18px; }
       .screen { padding: 14px; }
@@ -273,6 +292,10 @@
       <div class="stack">
         <select id="category"></select>
         <input id="createName" placeholder="Your name" value="Host">
+        <label class="checkbox-row" for="voiceEnabledCreate">
+          <input type="checkbox" id="voiceEnabledCreate" checked>
+          Enable voice chat for this room
+        </label>
         <button onclick="createRoom()">Create</button>
         <button class="secondary" onclick="showScreen('menu')">Back</button>
       </div>
@@ -513,6 +536,7 @@ let currentRoom = '';
 let isHost = false;
 let players = [];
 let hasVoted = false;
+let voiceEnabledForRoom = true;
 
 let localVoiceStream = null;
 let isMuted = false;
@@ -540,17 +564,19 @@ socket.on('connect', () => console.log('Socket connected - ID:', socket.id));
 socket.on('disconnect', (reason) => console.log('Disconnected:', reason));
 
 // Game events
-socket.on('roomCreated', ({ code }) => {
+socket.on('roomCreated', ({ code, voiceEnabled }) => {
   resetVotingUI();
   currentRoom = code;
+  voiceEnabledForRoom = voiceEnabled !== false;
   document.getElementById('roomCodeDisplay').textContent = code;
   showScreen('lobby');
   isHost = true;
 });
 
-socket.on('joined', ({ code }) => {
+socket.on('joined', ({ code, voiceEnabled }) => {
   resetVotingUI();
   currentRoom = code;
+  voiceEnabledForRoom = voiceEnabled !== false;
   document.getElementById('roomCodeDisplay').textContent = code;
   showScreen('lobby');
 });
@@ -689,7 +715,7 @@ function updateVoicePanelVisibility(screenId) {
   if (!panel) return;
 
   const inRoomScreen = screenId === 'lobby' || screenId === 'game';
-  panel.style.display = currentRoom && inRoomScreen ? 'block' : 'none';
+  panel.style.display = currentRoom && inRoomScreen && voiceEnabledForRoom ? 'block' : 'none';
 }
 
 function setVoiceStatus(message) {
@@ -950,8 +976,9 @@ socket.on('voiceSignal', async ({ from, signal }) => {
 function createRoom() {
   const name = document.getElementById('createName').value.trim() || 'Host';
   const cat = document.getElementById('category').value;
+  const voiceEnabled = document.getElementById('voiceEnabledCreate').checked;
   if (!cat) return alert('Select a category');
-  socket.emit('createRoom', { name, category: cat });
+  socket.emit('createRoom', { name, category: cat, voiceEnabled });
 }
 
 function joinRoom() {
