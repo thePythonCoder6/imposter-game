@@ -299,6 +299,7 @@
       <div id="vote-status">Cast your vote below.</div>
       <div id="vote-actions"></div>
       <div class="voice-row">
+        <button id="start-voting-btn" class="secondary" style="display:none;" onclick="startVoting()">Start Voting (Host)</button>
         <button id="end-voting-btn" class="secondary" style="display:none;" onclick="endVoting()">End Voting (Host)</button>
       </div>
       <div id="vote-tally"></div>
@@ -573,16 +574,14 @@ socket.on('gameStarted', ({ imposterIndex, secret }) => {
 
   document.getElementById('player-card').style.display = 'block';
 
-  document.getElementById('voting-panel').style.display = 'block';
-  renderVoteButtons();
-
   // Show host controls
   if (isHost) {
     document.getElementById('reveal-section').style.display = 'block';
-    document.getElementById('end-voting-btn').style.display = 'inline-block';
+    document.getElementById('start-voting-btn').style.display = 'inline-block';
   } else {
-    document.getElementById('end-voting-btn').style.display = 'none';
+    document.getElementById('start-voting-btn').style.display = 'none';
   }
+  document.getElementById('end-voting-btn').style.display = 'none';
 });
 
 socket.on('gameRevealed', ({ imposterName, secret }) => {
@@ -605,6 +604,8 @@ function resetVotingUI() {
   document.getElementById('vote-status').textContent = 'Cast your vote below.';
   document.getElementById('vote-actions').innerHTML = '';
   document.getElementById('vote-tally').innerHTML = '';
+  document.getElementById('start-voting-btn').style.display = 'none';
+  document.getElementById('end-voting-btn').style.display = 'none';
 }
 
 function renderVoteButtons() {
@@ -613,6 +614,23 @@ function renderVoteButtons() {
     .map(p => `<button class="secondary" onclick="castVote('${p.id}')">Vote ${p.name}</button>`)
     .join('');
 }
+
+
+function startVoting() {
+  socket.emit('startVoting', currentRoom);
+}
+
+socket.on('votingStarted', () => {
+  hasVoted = false;
+  document.getElementById('voting-panel').style.display = 'block';
+  document.getElementById('vote-status').textContent = 'Voting is live. Cast your vote.';
+  renderVoteButtons();
+
+  if (isHost) {
+    document.getElementById('start-voting-btn').style.display = 'none';
+    document.getElementById('end-voting-btn').style.display = 'inline-block';
+  }
+});
 
 function castVote(targetId) {
   if (hasVoted) return;
@@ -640,6 +658,8 @@ socket.on('votingEnded', ({ tally, top }) => {
     : 'No votes cast';
 
   document.getElementById('vote-status').textContent = `Voting ended. Top vote: ${topText}`;
+  document.getElementById('end-voting-btn').style.display = 'none';
+  if (isHost) document.getElementById('start-voting-btn').style.display = 'inline-block';
 
   const tallyHtml = tally
     .map(t => `<div>${t.name}: <strong>${t.votes}</strong></div>`)

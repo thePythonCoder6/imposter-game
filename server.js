@@ -196,7 +196,8 @@ io.on('connection', (socket) => {
       imposter: null,
       voiceParticipants: new Set(),
       votes: {},
-      voters: new Set()
+      voters: new Set(),
+      votingActive: false
     };
 
     socket.join(code);
@@ -228,6 +229,7 @@ io.on('connection', (socket) => {
     room.status = 'playing';
     room.votes = {};
     room.voters = new Set();
+    room.votingActive = false;
     io.to(code).emit('gameStarted', {
       imposterIndex: room.imposter,
       secret: room.secret
@@ -248,10 +250,24 @@ io.on('connection', (socket) => {
 
 
 
+
+  socket.on('startVoting', (code) => {
+    code = normalizeRoomCode(code);
+    const room = rooms[code];
+    if (!room || socket.id !== room.host) return socket.emit('error', 'Only host can start voting');
+    if (room.status !== 'playing') return socket.emit('error', 'Game is not in progress');
+
+    room.votes = {};
+    room.voters = new Set();
+    room.votingActive = true;
+
+    io.to(code).emit('votingStarted');
+  });
+
   socket.on('castVote', ({ code, targetId }) => {
     code = normalizeRoomCode(code);
     const room = rooms[code];
-    if (!room || room.status !== 'playing') return;
+    if (!room || room.status !== 'playing' || !room.votingActive) return;
 
     const voter = room.players.find(p => p.id === socket.id);
     const target = room.players.find(p => p.id === targetId);
@@ -292,6 +308,8 @@ io.on('connection', (socket) => {
 
     const maxVotes = Math.max(0, ...tally.map(t => t.votes));
     const top = tally.filter(t => t.votes === maxVotes && maxVotes > 0);
+
+    room.votingActive = false;
 
     io.to(code).emit('votingEnded', {
       tally,
