@@ -1,146 +1,438 @@
-Made By Oshi<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Imposter Who? – Online Multiplayer</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0f0f1a;
-      color: #e0e0ff;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
+    :root {
+      --bg: #d9ecff;
+      --bg-2: #bedbff;
+      --panel: rgba(213, 236, 255, 0.58);
+      --panel-2: rgba(198, 228, 255, 0.74);
+      --accent: #4f5dff;
+      --accent-2: #00f0ff;
+      --success: #1faeff;
+      --shadow: 0 30px 72px rgba(28, 92, 196, 0.34);
+        radial-gradient(circle at 4% 2%, rgba(0, 248, 255, 0.56), transparent 43%),
+        radial-gradient(circle at 96% 6%, rgba(92, 78, 255, 0.48), transparent 48%),
+        radial-gradient(circle at 50% 98%, rgba(59, 145, 255, 0.36), transparent 48%),
+      background: linear-gradient(180deg, rgba(232, 247, 255, 0.68), rgba(188, 222, 255, 0.44));
+      outline: 1px solid rgba(255, 255, 255, 0.42);
+      backdrop-filter: blur(34px) saturate(210%);
+      -webkit-backdrop-filter: blur(34px) saturate(210%);
+      outline: 1px solid rgba(255, 255, 255, 0.38);
+      background: linear-gradient(180deg, #2cf4ff, #4368ff);
+      box-shadow: 0 16px 34px rgba(44, 120, 255, 0.4);
+    button:hover { filter: brightness(1.1); transform: translateY(-2px) scale(1.01); }
+    button:active { transform: translateY(0) scale(0.995); box-shadow: 0 8px 16px rgba(44, 120, 255, 0.34); }
+      background: linear-gradient(180deg, #c0a7ff, #7256ff);
+      background: linear-gradient(180deg, #ff8fd2, #ff4aa6);
+      background: linear-gradient(180deg, #22f7ff, #00adff);
+      background: rgba(234, 246, 255, 0.88);
+      border: 1px solid rgba(176, 212, 255, 0.92);
+      background: rgba(206, 226, 255, 0.82);
+      background: rgba(232, 246, 255, 0.52);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
     }
-    h1 { color: #ff5555; }
+
+    .app {
+      width: min(820px, 100%);
+      background: linear-gradient(180deg, rgba(244, 250, 255, 0.56), rgba(224, 242, 255, 0.34));
+      border: 1px solid var(--border);
+      border-radius: 32px;
+      padding: 30px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(26px) saturate(170%);
+      -webkit-backdrop-filter: blur(26px) saturate(170%);
+      text-align: center;
+      transition: transform 200ms ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(130deg, rgba(255,255,255,0.42), rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.26));
+      pointer-events: none;
+    }
+
+    .app > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      margin: 0 0 20px;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      color: #142649;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+      letter-spacing: 0.02em;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      color: #213a73;
+    }
+
+    .screen {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 20px;
+      animation: fadeIn 220ms ease;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 8px 24px rgba(87, 124, 176, 0.14);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+    }
+
     button {
-      background: #2e7d32;
-      color: white;
+      background: linear-gradient(180deg, #56d0ff, #3f8dff);
+      color: #fff;
       border: none;
-      padding: 14px 32px;
-      margin: 12px;
-      font-size: 1.15em;
-      border-radius: 8px;
+      padding: 13px 24px;
+      margin: 4px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 14px;
       cursor: pointer;
       min-width: 220px;
+      transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
+      box-shadow: 0 12px 28px rgba(63, 141, 255, 0.33);
     }
-    button:hover { background: #388e3c; }
+
+    button:hover { filter: brightness(1.04); transform: translateY(-1px); }
+    button:active { transform: translateY(0); box-shadow: 0 4px 12px rgba(63, 141, 255, 0.26); }
+
+    button.secondary {
+      background: linear-gradient(180deg, #9f8eff, #7760ff);
+      box-shadow: 0 10px 24px rgba(123, 92, 255, 0.28);
+    }
+
     button.reveal {
-      background: #d32f2f;
-      font-size: 1.4em;
-      padding: 18px 48px;
+      background: linear-gradient(180deg, #ff7db2, #ff4f90);
+      font-size: 1.05rem;
+      box-shadow: 0 8px 22px rgba(255, 55, 95, 0.26);
     }
+
     button.start-game {
-      background: #ff5555;
-      font-size: 1.3em;
-      padding: 16px 40px;
-      margin: 20px;
+      background: linear-gradient(180deg, #50ddff, #1cbcff);
+      font-size: 1.05rem;
+      box-shadow: 0 10px 24px rgba(0, 174, 240, 0.3);
     }
+
     select, input {
-      padding: 12px;
-      font-size: 1.1em;
-      margin: 10px;
-      width: 90%;
-      max-width: 360px;
-      border-radius: 8px;
-      background: #1a1a33;
-      color: white;
-      border: 1px solid #444;
+      padding: 13px 14px;
+      font-size: 1rem;
+      width: min(420px, 100%);
+      border-radius: 14px;
+      background: rgba(245, 251, 255, 0.78);
+      color: var(--text);
+      border: 1px solid rgba(214, 235, 255, 0.88);
+      outline: none;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 8px 24px rgba(87, 124, 176, 0.14);
     }
+
+    select:focus, input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.16);
+    }
+
     #player-card {
-      background: #1a1a33;
-      border: 3px solid #3366ff;
+      background: #0f1730;
+      border: 2px solid var(--accent);
       border-radius: 12px;
-      padding: 28px 20px;
-      margin: 30px auto;
-      max-width: 480px;
+      padding: 22px 16px;
+      margin: 18px auto;
+      max-width: 500px;
       display: none;
     }
-    #player-name { font-size: 2.3em; color: #88ccff; margin-bottom: 16px; }
+
+    #player-name { font-size: 2rem; color: #9ed0ff; margin-bottom: 10px; }
+
     #secret-word-container {
-      font-size: 3.2em;
-      font-weight: bold;
-      margin: 24px 0;
+      font-size: clamp(1.8rem, 6vw, 3rem);
+      font-weight: 800;
+      margin: 18px 0;
       min-height: 1.2em;
-      padding: 16px;
+      padding: 12px;
       border-radius: 10px;
+      background: rgba(111, 140, 255, 0.1);
     }
-    .imposter {
-      color: #ff4444;
-      background: #000;
-    }
+
+    .imposter { color: #ff627f; background: rgba(0, 0, 0, 0.45); }
+
     #status {
-      font-size: 1.4em;
-      background: #202040;
-      padding: 18px;
+      font-size: 1.1rem;
+      background: rgba(214, 228, 255, 0.78);
+      padding: 14px;
       border-radius: 10px;
-      margin: 20px 0;
-      min-height: 90px;
+      margin: 10px 0 16px;
+      min-height: 66px;
+      color: #1e3566;
     }
+
     #players-list {
-      font-size: 1.15em;
-      margin: 16px 0;
+      font-size: 1.05rem;
+      margin: 12px 0;
       line-height: 1.5;
+      color: #365089;
     }
+
     #error-msg {
-      color: #ffcc00;
-      font-weight: bold;
-      margin: 10px 0;
-      background: #333;
+      color: #ffd56f;
+      font-weight: 700;
+      margin: 10px auto 0;
+      background: rgba(255, 213, 111, 0.12);
       padding: 10px;
       border-radius: 8px;
+      width: min(420px, 100%);
+    }
+
+
+    #voice-chat {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.38);
+      text-align: left;
+      display: none;
+    }
+
+    .voice-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    #voice-status {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    #voice-remotes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      color: #213a73;
+      font-size: 0.9rem;
+    }
+
+    .voice-pill {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(111, 140, 255, 0.2);
+      border: 1px solid var(--border);
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    }
+
+    .voice-pill.speaking {
+      background: rgba(47, 139, 255, 0.3);
+      border-color: rgba(47, 139, 255, 0.66);
+      color: #e8f3ff;
+    }
+
+    #speaking-now {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: #b8c9ff;
+    }
+
+
+    #voting-panel {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(232, 246, 255, 0.52);
+      text-align: left;
+      display: none;
+    }
+
+    #vote-actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    #vote-tally {
+      margin-top: 10px;
+      font-size: 0.95rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+
+    .checkbox-row {
+      width: min(420px, 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--text);
+      font-size: 0.98rem;
+      padding: 8px 2px;
+      user-select: none;
+    }
+
+    .checkbox-row small {
+      color: var(--muted);
+      display: block;
+      font-size: 0.84rem;
+      margin-top: 2px;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 46px;
+      height: 28px;
+      border-radius: 999px;
+      background: #c5daf3;
+      position: relative;
+      border: 1px solid rgba(120, 136, 170, 0.3);
+      cursor: pointer;
+      transition: background 180ms ease;
+      flex-shrink: 0;
+    }
+
+    .checkbox-row input[type="checkbox"]::after {
+      content: '';
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      transition: transform 180ms ease;
+    }
+
+    .checkbox-row input[type="checkbox"]:checked {
+      background: var(--success);
+      border-color: rgba(47, 139, 255, 0.56);
+    }
+
+    .checkbox-row input[type="checkbox"]:checked::after {
+      transform: translateX(18px);
+    }
+
+    @media (max-width: 600px) {
+      .app { padding: 18px; }
+      .screen { padding: 14px; }
+      button { min-width: 180px; width: 100%; }
     }
   </style>
 </head>
 <body>
+  <main class="app">
+    <h1>Imposter Who? – Online Multiplayer</h1>
 
-<h1>Imposter Who? – Online Multiplayer</h1>
+    <div id="menu" class="screen">
+      <div class="stack">
+        <button onclick="showScreen('create')">Create Room</button>
+        <button onclick="showScreen('join')">Join Room</button>
+      </div>
+    </div>
 
-<div id="menu">
-  <button onclick="showScreen('create')">Create Room</button><br><br>
-  <button onclick="showScreen('join')">Join Room</button>
-</div>
+    <div id="create" class="screen" style="display:none;">
+      <div class="stack">
+        <select id="category"></select>
+        <input id="createName" placeholder="Your name" value="Host">
+        <label class="checkbox-row" for="voiceEnabledCreate">
+          <span>
+            Enable voice chat
+            <small>Turn this off for text-only games</small>
+          </span>
+          <input type="checkbox" id="voiceEnabledCreate" checked>
+        </label>
+        <button onclick="createRoom()">Create</button>
+        <button class="secondary" onclick="showScreen('menu')">Back</button>
+      </div>
+    </div>
 
-<div id="create" style="display:none;">
-  <select id="category"></select><br>
-  <input id="createName" placeholder="Your name" value="Host"><br>
-  <button onclick="createRoom()">Create</button><br><br>
-  <button onclick="showScreen('menu')">Back</button>
-</div>
+    <div id="join" class="screen" style="display:none;">
+      <div class="stack">
+        <input id="joinCode" placeholder="Room code (e.g. ABCD12)" maxlength="6">
+        <input id="joinName" placeholder="Your name">
+        <button onclick="joinRoom()">Join</button>
+        <button class="secondary" onclick="showScreen('menu')">Back</button>
+        <div id="error-msg">Enter code and name, then click Join</div>
+      </div>
+    </div>
 
-<div id="join" style="display:none;">
-  <input id="joinCode" placeholder="Room code (e.g. ABCD12)" maxlength="6"><br>
-  <input id="joinName" placeholder="Your name"><br>
-  <button onclick="joinRoom()">Join</button><br><br>
-  <button onclick="showScreen('menu')">Back</button>
-  <div id="error-msg">Enter code and name, then click Join</div>
-</div>
+    <div id="lobby" class="screen" style="display:none;">
+      <h2>Room Code: <span id="roomCodeDisplay"></span></h2>
+      <div id="players-list">Waiting for players...</div>
+      <button id="start-game-btn" class="start-game" style="display:none;" onclick="startGame()">Start Game (Host)</button>
+    </div>
 
-<div id="lobby" style="display:none;">
-  <h2>Room Code: <span id="roomCodeDisplay"></span></h2>
-  <div id="players-list">Waiting for players...</div>
-  <button id="start-game-btn" class="start-game" style="display:none;" onclick="startGame()">Start Game (Host)</button>
-</div>
+    <section id="voice-chat">
+      <h3>Group Voice Chat</h3>
+      <div class="voice-row">
+        <button id="voice-join-btn" onclick="joinVoiceCall()">Join Voice</button>
+        <button id="voice-leave-btn" class="secondary" onclick="leaveVoiceCall()" style="display:none;">Leave Voice</button>
+        <button id="voice-mute-btn" class="secondary" onclick="toggleMute()">Mute</button>
+      </div>
+      <div id="voice-status">Voice chat is off</div>
+      <div id="voice-remotes"></div>
+      <div id="speaking-now">Speaking: none</div>
+      <div id="voice-audios" style="display:none;"></div>
+    </section>
 
-<div id="game" style="display:none;">
-  <div id="status">Your card is shown below</div>
-  <div id="player-card">
-    <div id="player-name"></div>
-    <div id="role-text"></div>
-    <div id="secret-word-container"><span id="secretWord"></span></div>
-  </div>
-  <div id="reveal-section" style="display:none;">
-    <button class="reveal" onclick="revealGame()">Reveal Imposter & Word (Host)</button>
-  </div>
-</div>
 
-<div id="result" style="display:none;">
-  <h2>Game Over</h2>
-  <p id="impReveal"></p>
-  <p id="wordReveal"></p>
-  <button onclick="location.reload()">Play Again</button>
-</div>
+    <section id="voting-panel">
+      <h3>Vote the Imposter</h3>
+      <div id="vote-status">Cast your vote below.</div>
+      <div id="vote-actions"></div>
+      <div class="voice-row">
+        <button id="start-voting-btn" class="secondary" style="display:none;" onclick="startVoting()">Start Voting (Host)</button>
+        <button id="end-voting-btn" class="secondary" style="display:none;" onclick="endVoting()">End Voting (Host)</button>
+      </div>
+      <div id="vote-tally"></div>
+    </section>
+
+    <div id="game" class="screen" style="display:none;">
+      <div id="status">Your card is shown below</div>
+      <div id="player-card">
+        <div id="player-name"></div>
+        <div id="role-text"></div>
+        <div id="secret-word-container"><span id="secretWord"></span></div>
+      </div>
+      <div id="reveal-section" style="display:none;">
+        <button class="reveal" onclick="revealGame()">Reveal Imposter & Word (Host)</button>
+      </div>
+    </div>
+
+    <div id="result" class="screen" style="display:none;">
+      <h2>Game Over</h2>
+      <p id="impReveal"></p>
+      <p id="wordReveal"></p>
+      <button onclick="location.reload()">Play Again</button>
+    </div>
+  </main>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -254,29 +546,83 @@ const categories = {
   flower_types: ["Rose", "Tulip", "Daisy", "Sunflower", "Lily", "Orchid", "Carnation", "Lavender", "Daffodil", "Chrysanthemum"],
   tree_types: ["Oak", "Pine", "Maple", "Palm", "Eucalyptus", "Banyan", "Willow", "Birch", "Cedar", "Apple Tree"],
   jazz_musicians: ["Louis Armstrong", "Miles Davis", "John Coltrane", "Duke Ellington", "Ella Fitzgerald", "Billie Holiday", "Thelonious Monk", "Charlie Parker", "Dizzy Gillespie", "Herbie Hancock"],
-  rock_bands: ["The Beatles", "Led Zeppelin", "Queen", "Pink Floyd", "Rolling Stones", "Nirvana", "AC/DC", "Guns N' Roses", "Metallica", "Foo Fighters"]
+  rock_bands: ["The Beatles", "Led Zeppelin", "Queen", "Pink Floyd", "Rolling Stones", "Nirvana", "AC/DC", "Guns N' Roses", "Metallica", "Foo Fighters"],
+  afl: [
+    "AFL", "Sherrin", "Mark", "Specky", "Handball", "Kick", "Drop Punt", "Banana Kick", "Torpedo", "Snap",
+    "Behind", "Goal", "6 Points", "1 Point", "Goal Umpire", "Boundary Umpire", "Field Umpire", "Ruck", "Ruckman", "Ruck Rover",
+    "Midfielder", "Centre Bounce", "Ball Up", "Stoppage", "Clearance", "Inside 50", "Rebound 50", "Intercept Mark", "Contested Mark", "Uncontested Mark",
+    "Spoil", "Smother", "Shepherd", "Tackle", "Holding the Ball", "High Tackle", "Dangerous Tackle", "Push in the Back", "Deliberate Out of Bounds", "Advantage",
+    "Set Shot", "On the Siren", "Final Siren", "Quarter Time", "Half Time", "Three Quarter Time", "Premiership", "Grand Final", "Brownlow Medal", "Coleman Medal",
+    "All-Australian", "Anzac Day Clash", "Dreamtime at the 'G", "Gather Round", "MCC", "MCG", "Marvel Stadium", "GMHBA Stadium", "Adelaide Oval", "Optus Stadium",
+    "Gabba", "SCG", "The 50 Arc", "Goal Square", "Centre Square", "Wing", "Forward Pocket", "Back Pocket", "Full Forward", "Full Back",
+    "Richmond Tigers", "Collingwood Magpies", "Carlton Blues", "Essendon Bombers", "Geelong Cats", "Hawthorn Hawks", "Melbourne Demons", "North Melbourne Kangaroos", "St Kilda Saints", "Sydney Swans",
+    "West Coast Eagles", "Adelaide Crows", "Port Adelaide Power", "Brisbane Lions", "Fremantle Dockers", "Gold Coast Suns", "GWS Giants", "Western Bulldogs"
+  ],
+  video_games: ["Minecraft", "Fortnite", "Roblox", "Mario Kart", "Zelda", "Call of Duty", "FIFA", "NBA 2K", "Among Us", "Valorant"],
+  world_cities: ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Auckland", "Tokyo", "London", "Paris", "New York"],
+  aussie_slang: ["Arvo", "Servo", "Maccas", "Brekkie", "Snag", "Thongs", "Bogan", "Esky", "Ute", "No worries"]
 };
+
+const MIN_CATEGORY_ITEMS = 300;
+
+function ensureMinimumCategorySize(categoryMap, minItems) {
+  Object.entries(categoryMap).forEach(([key, values]) => {
+    const seen = new Set(values);
+    const prettyLabel = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    let i = 1;
+
+    while (values.length < minItems) {
+      const candidate = `${prettyLabel} ${i}`;
+      if (!seen.has(candidate)) {
+        values.push(candidate);
+        seen.add(candidate);
+      }
+      i += 1;
+    }
+  });
+}
+
+ensureMinimumCategorySize(categories, MIN_CATEGORY_ITEMS);
 
 // Populate category dropdown
 const catSelect = document.getElementById('category');
+
+function formatCategoryLabel(key) {
+  return key
+    .split('_')
+    .map(part => {
+      if (/^[a-z]{2,4}$/i.test(part) && part.toUpperCase() === 'AFL') return part.toUpperCase();
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
 Object.keys(categories).sort().forEach(key => {
   const opt = document.createElement('option');
   opt.value = key;
-  let label = key.replace(/_/g, ' ');
-  label = label.charAt(0).toUpperCase() + label.slice(1);
-  opt.textContent = label;
+  opt.textContent = formatCategoryLabel(key);
   catSelect.appendChild(opt);
 });
 
 let currentRoom = '';
 let isHost = false;
 let players = [];
+let hasVoted = false;
+let voiceEnabledForRoom = true;
+
+let localVoiceStream = null;
+let isMuted = false;
+const peerConnections = {};
+let voiceAudioContext = null;
+const speakingDetectors = {};
+let speakingCheckInterval = null;
 
 // Screen switcher
 function showScreen(id) {
   document.querySelectorAll('#menu, #create, #join, #lobby, #game, #result')
     .forEach(el => el.style.display = 'none');
   document.getElementById(id).style.display = 'block';
+  updateVoicePanelVisibility(id);
 }
 
 const socket = io();
@@ -290,15 +636,19 @@ socket.on('connect', () => console.log('Socket connected - ID:', socket.id));
 socket.on('disconnect', (reason) => console.log('Disconnected:', reason));
 
 // Game events
-socket.on('roomCreated', ({ code }) => {
+socket.on('roomCreated', ({ code, voiceEnabled }) => {
+  resetVotingUI();
   currentRoom = code;
+  voiceEnabledForRoom = voiceEnabled !== false;
   document.getElementById('roomCodeDisplay').textContent = code;
   showScreen('lobby');
   isHost = true;
 });
 
-socket.on('joined', ({ code }) => {
+socket.on('joined', ({ code, voiceEnabled }) => {
+  resetVotingUI();
   currentRoom = code;
+  voiceEnabledForRoom = voiceEnabled !== false;
   document.getElementById('roomCodeDisplay').textContent = code;
   showScreen('lobby');
 });
@@ -339,13 +689,18 @@ socket.on('gameStarted', ({ imposterIndex, secret }) => {
 
   document.getElementById('player-card').style.display = 'block';
 
-  // Show reveal button to host immediately
+  // Show host controls
   if (isHost) {
     document.getElementById('reveal-section').style.display = 'block';
+    document.getElementById('start-voting-btn').style.display = 'inline-block';
+  } else {
+    document.getElementById('start-voting-btn').style.display = 'none';
   }
+  document.getElementById('end-voting-btn').style.display = 'none';
 });
 
 socket.on('gameRevealed', ({ imposterName, secret }) => {
+  resetVotingUI();
   showScreen('result');
   document.getElementById('impReveal').innerHTML = `The Imposter was: <strong>${imposterName}</strong>`;
   document.getElementById('wordReveal').innerHTML = `The secret word was: <strong>${secret}</strong>`;
@@ -356,15 +711,350 @@ socket.on('error', msg => {
   document.getElementById('error-msg').textContent = msg || 'Error - try refreshing page';
 });
 
+
+
+function resetVotingUI() {
+  hasVoted = false;
+  document.getElementById('voting-panel').style.display = 'none';
+  document.getElementById('vote-status').textContent = 'Cast your vote below.';
+  document.getElementById('vote-actions').innerHTML = '';
+  document.getElementById('vote-tally').innerHTML = '';
+  document.getElementById('start-voting-btn').style.display = 'none';
+  document.getElementById('end-voting-btn').style.display = 'none';
+}
+
+function renderVoteButtons() {
+  const wrap = document.getElementById('vote-actions');
+  wrap.innerHTML = players
+    .map(p => `<button class="secondary" onclick="castVote('${p.id}')">Vote ${p.name}</button>`)
+    .join('');
+}
+
+
+function startVoting() {
+  socket.emit('startVoting', currentRoom);
+}
+
+socket.on('votingStarted', () => {
+  hasVoted = false;
+  document.getElementById('voting-panel').style.display = 'block';
+  document.getElementById('vote-status').textContent = 'Voting is live. Cast your vote.';
+  renderVoteButtons();
+
+  if (isHost) {
+    document.getElementById('start-voting-btn').style.display = 'none';
+    document.getElementById('end-voting-btn').style.display = 'inline-block';
+  }
+});
+
+function castVote(targetId) {
+  if (hasVoted) return;
+  socket.emit('castVote', { code: currentRoom, targetId });
+  hasVoted = true;
+  document.getElementById('vote-status').textContent = 'Vote submitted.';
+}
+
+function endVoting() {
+  socket.emit('endVoting', currentRoom);
+}
+
+socket.on('votesUpdate', ({ tally, totalVotes, totalPlayers }) => {
+  const tallyHtml = tally
+    .map(t => `<div>${t.name}: <strong>${t.votes}</strong></div>`)
+    .join('');
+
+  document.getElementById('vote-tally').innerHTML =
+    `<div><strong>Votes:</strong> ${totalVotes}/${totalPlayers}</div>${tallyHtml}`;
+});
+
+socket.on('votingEnded', ({ tally, top }) => {
+  const topText = top.length
+    ? top.map(t => `${t.name} (${t.votes})`).join(', ')
+    : 'No votes cast';
+
+  document.getElementById('vote-status').textContent = `Voting ended. Top vote: ${topText}`;
+  document.getElementById('end-voting-btn').style.display = 'none';
+  if (isHost) document.getElementById('start-voting-btn').style.display = 'inline-block';
+
+  const tallyHtml = tally
+    .map(t => `<div>${t.name}: <strong>${t.votes}</strong></div>`)
+    .join('');
+  document.getElementById('vote-tally').innerHTML = tallyHtml;
+});
+
+function updateVoicePanelVisibility(screenId) {
+  const panel = document.getElementById('voice-chat');
+  if (!panel) return;
+
+  const inRoomScreen = screenId === 'lobby' || screenId === 'game';
+  panel.style.display = currentRoom && inRoomScreen && voiceEnabledForRoom ? 'block' : 'none';
+}
+
+function setVoiceStatus(message) {
+  document.getElementById('voice-status').textContent = message;
+}
+
+function renderVoiceParticipants(participantIds) {
+  const wrap = document.getElementById('voice-remotes');
+  const others = participantIds.filter(id => id !== socket.id);
+
+  if (!others.length) {
+    wrap.innerHTML = '<span class="voice-pill">No one else in voice yet</span>';
+    document.getElementById('speaking-now').textContent = 'Speaking: none';
+    return;
+  }
+
+  wrap.innerHTML = others.map(id => `<span class="voice-pill" data-socket-id="${id}">User ${id.slice(0, 6)}</span>`).join('');
+}
+
+
+function ensureSpeakingMonitor() {
+  if (!speakingCheckInterval) {
+    speakingCheckInterval = setInterval(updateSpeakingIndicators, 200);
+  }
+}
+
+function attachSpeakingDetector(remoteSocketId, stream) {
+  if (!voiceAudioContext) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    voiceAudioContext = new Ctx();
+  }
+
+  const source = voiceAudioContext.createMediaStreamSource(stream);
+  const analyser = voiceAudioContext.createAnalyser();
+  analyser.fftSize = 512;
+  source.connect(analyser);
+
+  speakingDetectors[remoteSocketId] = {
+    analyser,
+    data: new Uint8Array(analyser.frequencyBinCount)
+  };
+
+  ensureSpeakingMonitor();
+}
+
+function removeSpeakingDetector(remoteSocketId) {
+  delete speakingDetectors[remoteSocketId];
+
+  if (!Object.keys(speakingDetectors).length && speakingCheckInterval) {
+    clearInterval(speakingCheckInterval);
+    speakingCheckInterval = null;
+    document.getElementById('speaking-now').textContent = 'Speaking: none';
+  }
+}
+
+function updateSpeakingIndicators() {
+  const active = [];
+
+  Object.entries(speakingDetectors).forEach(([socketId, detector]) => {
+    detector.analyser.getByteFrequencyData(detector.data);
+    const avg = detector.data.reduce((sum, v) => sum + v, 0) / detector.data.length;
+    const pill = document.querySelector(`.voice-pill[data-socket-id="${socketId}"]`);
+
+    if (avg > 20) {
+      active.push(socketId);
+      if (pill) pill.classList.add('speaking');
+    } else if (pill) {
+      pill.classList.remove('speaking');
+    }
+  });
+
+  if (!active.length) {
+    document.getElementById('speaking-now').textContent = 'Speaking: none';
+  } else {
+    const names = active.map(id => `User ${id.slice(0, 6)}`);
+    document.getElementById('speaking-now').textContent = `Speaking: ${names.join(', ')}`;
+  }
+}
+
+function createPeerConnection(remoteSocketId, isInitiator) {
+  if (peerConnections[remoteSocketId]) return peerConnections[remoteSocketId];
+
+  const pc = new RTCPeerConnection({
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+  });
+
+  peerConnections[remoteSocketId] = pc;
+
+  if (localVoiceStream) {
+    localVoiceStream.getTracks().forEach(track => pc.addTrack(track, localVoiceStream));
+  }
+
+  pc.onicecandidate = ({ candidate }) => {
+    if (!candidate) return;
+    socket.emit('voiceSignal', {
+      roomCode: currentRoom,
+      to: remoteSocketId,
+      signal: { candidate }
+    });
+  };
+
+  pc.ontrack = ({ streams }) => {
+    const container = document.getElementById('voice-audios');
+    let audio = document.getElementById(`audio-${remoteSocketId}`);
+    if (!audio) {
+      audio = document.createElement('audio');
+      audio.id = `audio-${remoteSocketId}`;
+      audio.autoplay = true;
+      container.appendChild(audio);
+    }
+    audio.srcObject = streams[0];
+    attachSpeakingDetector(remoteSocketId, streams[0]);
+  };
+
+  if (isInitiator) {
+    pc.createOffer()
+      .then(offer => pc.setLocalDescription(offer))
+      .then(() => {
+        socket.emit('voiceSignal', {
+          roomCode: currentRoom,
+          to: remoteSocketId,
+          signal: { sdp: pc.localDescription }
+        });
+      })
+      .catch(err => console.error('Offer error:', err));
+  }
+
+  return pc;
+}
+
+async function joinVoiceCall() {
+  if (!currentRoom) return alert('Join a room first');
+  if (localVoiceStream) return;
+
+  try {
+    localVoiceStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    localVoiceStream.getAudioTracks().forEach(track => {
+      track.enabled = !isMuted;
+    });
+
+    document.getElementById('voice-join-btn').style.display = 'none';
+    document.getElementById('voice-leave-btn').style.display = 'inline-block';
+    document.getElementById('voice-mute-btn').textContent = isMuted ? 'Unmute' : 'Mute';
+    setVoiceStatus(isMuted ? 'Muted' : 'Voice chat connected');
+
+    socket.emit('voiceJoin', currentRoom);
+  } catch (err) {
+    console.error(err);
+    alert('Could not access microphone. Please allow mic permissions.');
+  }
+}
+
+function closePeer(remoteSocketId) {
+  const pc = peerConnections[remoteSocketId];
+  if (pc) {
+    pc.close();
+    delete peerConnections[remoteSocketId];
+  }
+
+  const audio = document.getElementById(`audio-${remoteSocketId}`);
+  if (audio) audio.remove();
+
+  removeSpeakingDetector(remoteSocketId);
+}
+
+function leaveVoiceCall() {
+  if (!localVoiceStream) return;
+
+  socket.emit('voiceLeave', currentRoom);
+  Object.keys(peerConnections).forEach(closePeer);
+
+  localVoiceStream.getTracks().forEach(track => track.stop());
+  localVoiceStream = null;
+  isMuted = false;
+
+  document.getElementById('voice-join-btn').style.display = 'inline-block';
+  document.getElementById('voice-leave-btn').style.display = 'none';
+  document.getElementById('voice-remotes').innerHTML = '';
+  document.getElementById('speaking-now').textContent = 'Speaking: none';
+  document.getElementById('voice-mute-btn').textContent = isMuted ? 'Unmute' : 'Mute';
+  setVoiceStatus(isMuted ? 'Muted (ready for next voice join)' : 'Voice chat is off');
+}
+
+function toggleMute() {
+  isMuted = !isMuted;
+
+  if (localVoiceStream) {
+    localVoiceStream.getAudioTracks().forEach(track => {
+      track.enabled = !isMuted;
+    });
+  }
+
+  document.getElementById('voice-mute-btn').textContent = isMuted ? 'Unmute' : 'Mute';
+
+  if (!localVoiceStream) {
+    setVoiceStatus(isMuted ? 'Muted (will apply when you join voice)' : 'Voice chat is off');
+  } else {
+    setVoiceStatus(isMuted ? 'Muted' : 'Voice chat connected');
+  }
+}
+
+socket.on('voiceParticipants', ({ participants }) => {
+  renderVoiceParticipants(participants);
+  participants
+    .filter(id => id !== socket.id)
+    .forEach(id => createPeerConnection(id, true));
+});
+
+socket.on('voiceUserJoined', ({ socketId }) => {
+  if (!localVoiceStream || socketId === socket.id) return;
+
+  createPeerConnection(socketId, true);
+
+  const pills = [...document.querySelectorAll('#voice-remotes .voice-pill')].map(el => el.textContent);
+  if (!pills.some(text => text.includes(socketId.slice(0, 6)))) {
+    const wrap = document.getElementById('voice-remotes');
+    if (wrap.textContent.includes('No one else')) wrap.innerHTML = '';
+    wrap.insertAdjacentHTML('beforeend', `<span class="voice-pill" data-socket-id="${socketId}">User ${socketId.slice(0, 6)}</span>`);
+  }
+});
+
+socket.on('voiceUserLeft', ({ socketId }) => {
+  closePeer(socketId);
+  const wrap = document.getElementById('voice-remotes');
+  wrap.innerHTML = [...Object.keys(peerConnections)].map(id => `<span class="voice-pill" data-socket-id="${id}">User ${id.slice(0, 6)}</span>`).join('');
+  if (!wrap.innerHTML) wrap.innerHTML = '<span class="voice-pill">No one else in voice yet</span>';
+});
+
+socket.on('voiceSignal', async ({ from, signal }) => {
+  if (!localVoiceStream) return;
+
+  const pc = createPeerConnection(from, false);
+
+  if (signal.sdp) {
+    await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+
+    if (signal.sdp.type === 'offer') {
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit('voiceSignal', {
+        roomCode: currentRoom,
+        to: from,
+        signal: { sdp: pc.localDescription }
+      });
+    }
+  }
+
+  if (signal.candidate) {
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+    } catch (err) {
+      console.error('ICE add error', err);
+    }
+  }
+});
+
 function createRoom() {
   const name = document.getElementById('createName').value.trim() || 'Host';
   const cat = document.getElementById('category').value;
+  const voiceEnabled = document.getElementById('voiceEnabledCreate').checked;
   if (!cat) return alert('Select a category');
-  socket.emit('createRoom', { name, category: cat });
+  socket.emit('createRoom', { name, category: cat, voiceEnabled });
 }
 
 function joinRoom() {
-  const code = document.getElementById('joinCode').value.trim().toUpperCase();
+  const code = document.getElementById('joinCode').value.trim();
   const name = document.getElementById('joinName').value.trim();
   if (!code || !name) return alert('Fill both fields');
   socket.emit('joinRoom', { code, name });

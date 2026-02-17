@@ -132,17 +132,59 @@ const categories = {
   flower_types: ["Rose", "Tulip", "Daisy", "Sunflower", "Lily", "Orchid", "Carnation", "Lavender", "Daffodil", "Chrysanthemum"],
   tree_types: ["Oak", "Pine", "Maple", "Palm", "Eucalyptus", "Banyan", "Willow", "Birch", "Cedar", "Apple Tree"],
   jazz_musicians: ["Louis Armstrong", "Miles Davis", "John Coltrane", "Duke Ellington", "Ella Fitzgerald", "Billie Holiday", "Thelonious Monk", "Charlie Parker", "Dizzy Gillespie", "Herbie Hancock"],
-  rock_bands: ["The Beatles", "Led Zeppelin", "Queen", "Pink Floyd", "Rolling Stones", "Nirvana", "AC/DC", "Guns N' Roses", "Metallica", "Foo Fighters"]
+  rock_bands: ["The Beatles", "Led Zeppelin", "Queen", "Pink Floyd", "Rolling Stones", "Nirvana", "AC/DC", "Guns N' Roses", "Metallica", "Foo Fighters"],
+  afl: [
+    "AFL", "Sherrin", "Mark", "Specky", "Handball", "Kick", "Drop Punt", "Banana Kick", "Torpedo", "Snap",
+    "Behind", "Goal", "6 Points", "1 Point", "Goal Umpire", "Boundary Umpire", "Field Umpire", "Ruck", "Ruckman", "Ruck Rover",
+    "Midfielder", "Centre Bounce", "Ball Up", "Stoppage", "Clearance", "Inside 50", "Rebound 50", "Intercept Mark", "Contested Mark", "Uncontested Mark",
+    "Spoil", "Smother", "Shepherd", "Tackle", "Holding the Ball", "High Tackle", "Dangerous Tackle", "Push in the Back", "Deliberate Out of Bounds", "Advantage",
+    "Set Shot", "On the Siren", "Final Siren", "Quarter Time", "Half Time", "Three Quarter Time", "Premiership", "Grand Final", "Brownlow Medal", "Coleman Medal",
+    "All-Australian", "Anzac Day Clash", "Dreamtime at the 'G", "Gather Round", "MCC", "MCG", "Marvel Stadium", "GMHBA Stadium", "Adelaide Oval", "Optus Stadium",
+    "Gabba", "SCG", "The 50 Arc", "Goal Square", "Centre Square", "Wing", "Forward Pocket", "Back Pocket", "Full Forward", "Full Back",
+    "Richmond Tigers", "Collingwood Magpies", "Carlton Blues", "Essendon Bombers", "Geelong Cats", "Hawthorn Hawks", "Melbourne Demons", "North Melbourne Kangaroos", "St Kilda Saints", "Sydney Swans",
+    "West Coast Eagles", "Adelaide Crows", "Port Adelaide Power", "Brisbane Lions", "Fremantle Dockers", "Gold Coast Suns", "GWS Giants", "Western Bulldogs"
+  ],
+  video_games: ["Minecraft", "Fortnite", "Roblox", "Mario Kart", "Zelda", "Call of Duty", "FIFA", "NBA 2K", "Among Us", "Valorant"],
+  world_cities: ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Auckland", "Tokyo", "London", "Paris", "New York"],
+  aussie_slang: ["Arvo", "Servo", "Maccas", "Brekkie", "Snag", "Thongs", "Bogan", "Esky", "Ute", "No worries"]
 };
+
+const MIN_CATEGORY_ITEMS = 300;
+
+function ensureMinimumCategorySize(categoryMap, minItems) {
+  Object.entries(categoryMap).forEach(([key, values]) => {
+    const seen = new Set(values);
+    const prettyLabel = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    let i = 1;
+
+    while (values.length < minItems) {
+      const candidate = `${prettyLabel} ${i}`;
+      if (!seen.has(candidate)) {
+        values.push(candidate);
+        seen.add(candidate);
+      }
+      i += 1;
+    }
+  });
+}
+
+ensureMinimumCategorySize(categories, MIN_CATEGORY_ITEMS);
 
 // In-memory rooms
 const rooms = {};
+const socketToRoom = {};
+
+function normalizeRoomCode(code) {
+  return String(code || '').trim().toLowerCase();
+}
+
 
 io.on('connection', (socket) => {
   console.log(`New connection: ${socket.id}`);
 
-  socket.on('createRoom', ({ name, category }) => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+  socket.on('createRoom', ({ name, category, voiceEnabled }) => {
+    const displayCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const code = normalizeRoomCode(displayCode);
     const wordList = categories[category] || categories.food;
     const secret = wordList[Math.floor(Math.random() * wordList.length)];
 
@@ -151,34 +193,44 @@ io.on('connection', (socket) => {
       players: [{ id: socket.id, name }],
       status: 'lobby',
       host: socket.id,
-      imposter: null
+      imposter: null,
+      voiceParticipants: new Set(),
+      votes: {},
+      voters: new Set(),
+      votingActive: false,
+      voiceEnabled: voiceEnabled !== false
     };
 
     socket.join(code);
-    socket.emit('roomCreated', { code });
+    socketToRoom[socket.id] = code;
+    socket.emit('roomCreated', { code: displayCode, voiceEnabled: rooms[code].voiceEnabled });
     io.to(code).emit('playersUpdate', rooms[code].players);
   });
 
   socket.on('joinRoom', ({ code, name }) => {
-    code = code.toUpperCase();
+    code = normalizeRoomCode(code);
     const room = rooms[code];
     if (!room) return socket.emit('error', 'Room not found');
     if (room.players.some(p => p.name === name)) return socket.emit('error', 'Name already taken');
 
     room.players.push({ id: socket.id, name });
     socket.join(code);
+    socketToRoom[socket.id] = code;
     io.to(code).emit('playersUpdate', room.players);
-    socket.emit('joined', { code });
+    socket.emit('joined', { code: code.toUpperCase(), voiceEnabled: room.voiceEnabled !== false });
   });
 
   socket.on('startGame', (code) => {
-    code = code.toUpperCase();
+    code = normalizeRoomCode(code);
     const room = rooms[code];
     if (!room || socket.id !== room.host) return socket.emit('error', 'Only host can start game');
     if (room.players.length < 3) return socket.emit('error', 'Need at least 3 players');
 
     room.imposter = Math.floor(Math.random() * room.players.length);
     room.status = 'playing';
+    room.votes = {};
+    room.voters = new Set();
+    room.votingActive = false;
     io.to(code).emit('gameStarted', {
       imposterIndex: room.imposter,
       secret: room.secret
@@ -186,7 +238,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('reveal', (code) => {
-    code = code.toUpperCase();
+    code = normalizeRoomCode(code);
     const room = rooms[code];
     if (!room || socket.id !== room.host) return socket.emit('error', 'Only host can reveal');
 
@@ -196,9 +248,128 @@ io.on('connection', (socket) => {
     });
   });
 
+
+
+
+
+  socket.on('startVoting', (code) => {
+    code = normalizeRoomCode(code);
+    const room = rooms[code];
+    if (!room || socket.id !== room.host) return socket.emit('error', 'Only host can start voting');
+    if (room.status !== 'playing') return socket.emit('error', 'Game is not in progress');
+
+    room.votes = {};
+    room.voters = new Set();
+    room.votingActive = true;
+
+    io.to(code).emit('votingStarted');
+  });
+
+  socket.on('castVote', ({ code, targetId }) => {
+    code = normalizeRoomCode(code);
+    const room = rooms[code];
+    if (!room || room.status !== 'playing' || !room.votingActive) return;
+
+    const voter = room.players.find(p => p.id === socket.id);
+    const target = room.players.find(p => p.id === targetId);
+    if (!voter || !target) return;
+
+    if (!room.votes[targetId]) room.votes[targetId] = 0;
+
+    if (room.voters.has(socket.id)) {
+      return socket.emit('error', 'You already voted this round');
+    }
+
+    room.voters.add(socket.id);
+    room.votes[targetId] += 1;
+
+    const tally = room.players.map(p => ({
+      id: p.id,
+      name: p.name,
+      votes: room.votes[p.id] || 0
+    }));
+
+    io.to(code).emit('votesUpdate', {
+      tally,
+      totalVotes: room.voters.size,
+      totalPlayers: room.players.length
+    });
+  });
+
+  socket.on('endVoting', (code) => {
+    code = normalizeRoomCode(code);
+    const room = rooms[code];
+    if (!room || socket.id !== room.host) return socket.emit('error', 'Only host can end voting');
+
+    const tally = room.players.map(p => ({
+      id: p.id,
+      name: p.name,
+      votes: room.votes[p.id] || 0
+    }));
+
+    const maxVotes = Math.max(0, ...tally.map(t => t.votes));
+    const top = tally.filter(t => t.votes === maxVotes && maxVotes > 0);
+
+    room.votingActive = false;
+
+    io.to(code).emit('votingEnded', {
+      tally,
+      top
+    });
+  });
+
+  socket.on('voiceJoin', (roomCode) => {
+    const code = normalizeRoomCode(roomCode) || socketToRoom[socket.id];
+    const room = rooms[code];
+    if (!room || room.voiceEnabled === false) return;
+
+    if (!room.voiceParticipants) room.voiceParticipants = new Set();
+    room.voiceParticipants.add(socket.id);
+
+    socket.to(code).emit('voiceUserJoined', { socketId: socket.id });
+    socket.emit('voiceParticipants', {
+      participants: Array.from(room.voiceParticipants)
+    });
+  });
+
+  socket.on('voiceLeave', (roomCode) => {
+    const code = normalizeRoomCode(roomCode) || socketToRoom[socket.id];
+    const room = rooms[code];
+    if (!room || !room.voiceParticipants) return;
+
+    room.voiceParticipants.delete(socket.id);
+    socket.to(code).emit('voiceUserLeft', { socketId: socket.id });
+  });
+
+  socket.on('voiceSignal', ({ roomCode, to, signal }) => {
+    const code = normalizeRoomCode(roomCode) || socketToRoom[socket.id];
+    const room = rooms[code];
+    if (!room || !to || !signal) return;
+
+    io.to(to).emit('voiceSignal', {
+      from: socket.id,
+      signal
+    });
+  });
+
   socket.on('ping', () => {});
 
   socket.on('disconnect', () => {
+    const code = socketToRoom[socket.id];
+    if (code && rooms[code]) {
+      const room = rooms[code];
+      room.players = room.players.filter(p => p.id !== socket.id);
+      io.to(code).emit('playersUpdate', room.players);
+
+      if (room.voiceParticipants) {
+        room.voiceParticipants.delete(socket.id);
+        socket.to(code).emit('voiceUserLeft', { socketId: socket.id });
+      }
+
+      if (room.players.length === 0) delete rooms[code];
+    }
+
+    delete socketToRoom[socket.id];
     console.log(`Disconnected: ${socket.id}`);
   });
 });
