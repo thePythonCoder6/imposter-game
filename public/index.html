@@ -211,6 +211,19 @@
       border-radius: 999px;
       background: rgba(111, 140, 255, 0.2);
       border: 1px solid var(--border);
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    }
+
+    .voice-pill.speaking {
+      background: rgba(57, 194, 127, 0.28);
+      border-color: rgba(57, 194, 127, 0.6);
+      color: #dfffea;
+    }
+
+    #speaking-now {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: #b8c9ff;
     }
 
 
@@ -290,6 +303,7 @@
       </div>
       <div id="voice-status">Voice chat is off</div>
       <div id="voice-remotes"></div>
+      <div id="speaking-now">Speaking: none</div>
       <div id="voice-audios" style="display:none;"></div>
     </section>
 
@@ -503,6 +517,9 @@ let hasVoted = false;
 let localVoiceStream = null;
 let isMuted = false;
 const peerConnections = {};
+let voiceAudioContext = null;
+const speakingDetectors = {};
+let speakingCheckInterval = null;
 
 // Screen switcher
 function showScreen(id) {
@@ -685,10 +702,72 @@ function renderVoiceParticipants(participantIds) {
 
   if (!others.length) {
     wrap.innerHTML = '<span class="voice-pill">No one else in voice yet</span>';
+    document.getElementById('speaking-now').textContent = 'Speaking: none';
     return;
   }
 
-  wrap.innerHTML = others.map(id => `<span class="voice-pill">User ${id.slice(0, 6)}</span>`).join('');
+  wrap.innerHTML = others.map(id => `<span class="voice-pill" data-socket-id="${id}">User ${id.slice(0, 6)}</span>`).join('');
+}
+
+
+function ensureSpeakingMonitor() {
+  if (!speakingCheckInterval) {
+    speakingCheckInterval = setInterval(updateSpeakingIndicators, 200);
+  }
+}
+
+function attachSpeakingDetector(remoteSocketId, stream) {
+  if (!voiceAudioContext) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    voiceAudioContext = new Ctx();
+  }
+
+  const source = voiceAudioContext.createMediaStreamSource(stream);
+  const analyser = voiceAudioContext.createAnalyser();
+  analyser.fftSize = 512;
+  source.connect(analyser);
+
+  speakingDetectors[remoteSocketId] = {
+    analyser,
+    data: new Uint8Array(analyser.frequencyBinCount)
+  };
+
+  ensureSpeakingMonitor();
+}
+
+function removeSpeakingDetector(remoteSocketId) {
+  delete speakingDetectors[remoteSocketId];
+
+  if (!Object.keys(speakingDetectors).length && speakingCheckInterval) {
+    clearInterval(speakingCheckInterval);
+    speakingCheckInterval = null;
+    document.getElementById('speaking-now').textContent = 'Speaking: none';
+  }
+}
+
+function updateSpeakingIndicators() {
+  const active = [];
+
+  Object.entries(speakingDetectors).forEach(([socketId, detector]) => {
+    detector.analyser.getByteFrequencyData(detector.data);
+    const avg = detector.data.reduce((sum, v) => sum + v, 0) / detector.data.length;
+    const pill = document.querySelector(`.voice-pill[data-socket-id="${socketId}"]`);
+
+    if (avg > 20) {
+      active.push(socketId);
+      if (pill) pill.classList.add('speaking');
+    } else if (pill) {
+      pill.classList.remove('speaking');
+    }
+  });
+
+  if (!active.length) {
+    document.getElementById('speaking-now').textContent = 'Speaking: none';
+  } else {
+    const names = active.map(id => `User ${id.slice(0, 6)}`);
+    document.getElementById('speaking-now').textContent = `Speaking: ${names.join(', ')}`;
+  }
 }
 
 function createPeerConnection(remoteSocketId, isInitiator) {
@@ -723,6 +802,7 @@ function createPeerConnection(remoteSocketId, isInitiator) {
       container.appendChild(audio);
     }
     audio.srcObject = streams[0];
+    attachSpeakingDetector(remoteSocketId, streams[0]);
   };
 
   if (isInitiator) {
@@ -772,6 +852,8 @@ function closePeer(remoteSocketId) {
 
   const audio = document.getElementById(`audio-${remoteSocketId}`);
   if (audio) audio.remove();
+
+  removeSpeakingDetector(remoteSocketId);
 }
 
 function leaveVoiceCall() {
@@ -787,6 +869,7 @@ function leaveVoiceCall() {
   document.getElementById('voice-join-btn').style.display = 'inline-block';
   document.getElementById('voice-leave-btn').style.display = 'none';
   document.getElementById('voice-remotes').innerHTML = '';
+  document.getElementById('speaking-now').textContent = 'Speaking: none';
   document.getElementById('voice-mute-btn').textContent = isMuted ? 'Unmute' : 'Mute';
   setVoiceStatus(isMuted ? 'Muted (ready for next voice join)' : 'Voice chat is off');
 }
@@ -825,14 +908,14 @@ socket.on('voiceUserJoined', ({ socketId }) => {
   if (!pills.some(text => text.includes(socketId.slice(0, 6)))) {
     const wrap = document.getElementById('voice-remotes');
     if (wrap.textContent.includes('No one else')) wrap.innerHTML = '';
-    wrap.insertAdjacentHTML('beforeend', `<span class="voice-pill">User ${socketId.slice(0, 6)}</span>`);
+    wrap.insertAdjacentHTML('beforeend', `<span class="voice-pill" data-socket-id="${socketId}">User ${socketId.slice(0, 6)}</span>`);
   }
 });
 
 socket.on('voiceUserLeft', ({ socketId }) => {
   closePeer(socketId);
   const wrap = document.getElementById('voice-remotes');
-  wrap.innerHTML = [...Object.keys(peerConnections)].map(id => `<span class="voice-pill">User ${id.slice(0, 6)}</span>`).join('');
+  wrap.innerHTML = [...Object.keys(peerConnections)].map(id => `<span class="voice-pill" data-socket-id="${id}">User ${id.slice(0, 6)}</span>`).join('');
   if (!wrap.innerHTML) wrap.innerHTML = '<span class="voice-pill">No one else in voice yet</span>';
 });
 
