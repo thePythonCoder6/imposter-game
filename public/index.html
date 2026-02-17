@@ -213,6 +213,31 @@
       border: 1px solid var(--border);
     }
 
+
+    #voting-panel {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #121a30;
+      text-align: left;
+      display: none;
+    }
+
+    #vote-actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    #vote-tally {
+      margin-top: 10px;
+      font-size: 0.95rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
     @media (max-width: 600px) {
       .app { padding: 18px; }
       .screen { padding: 14px; }
@@ -266,6 +291,17 @@
       <div id="voice-status">Voice chat is off</div>
       <div id="voice-remotes"></div>
       <div id="voice-audios" style="display:none;"></div>
+    </section>
+
+
+    <section id="voting-panel">
+      <h3>Vote the Imposter</h3>
+      <div id="vote-status">Cast your vote below.</div>
+      <div id="vote-actions"></div>
+      <div class="voice-row">
+        <button id="end-voting-btn" class="secondary" style="display:none;" onclick="endVoting()">End Voting (Host)</button>
+      </div>
+      <div id="vote-tally"></div>
     </section>
 
     <div id="game" class="screen" style="display:none;">
@@ -461,6 +497,7 @@ Object.keys(categories).sort().forEach(key => {
 let currentRoom = '';
 let isHost = false;
 let players = [];
+let hasVoted = false;
 
 let localVoiceStream = null;
 let isMuted = false;
@@ -486,6 +523,7 @@ socket.on('disconnect', (reason) => console.log('Disconnected:', reason));
 
 // Game events
 socket.on('roomCreated', ({ code }) => {
+  resetVotingUI();
   currentRoom = code;
   document.getElementById('roomCodeDisplay').textContent = code;
   showScreen('lobby');
@@ -493,6 +531,7 @@ socket.on('roomCreated', ({ code }) => {
 });
 
 socket.on('joined', ({ code }) => {
+  resetVotingUI();
   currentRoom = code;
   document.getElementById('roomCodeDisplay').textContent = code;
   showScreen('lobby');
@@ -534,13 +573,20 @@ socket.on('gameStarted', ({ imposterIndex, secret }) => {
 
   document.getElementById('player-card').style.display = 'block';
 
-  // Show reveal button to host immediately
+  document.getElementById('voting-panel').style.display = 'block';
+  renderVoteButtons();
+
+  // Show host controls
   if (isHost) {
     document.getElementById('reveal-section').style.display = 'block';
+    document.getElementById('end-voting-btn').style.display = 'inline-block';
+  } else {
+    document.getElementById('end-voting-btn').style.display = 'none';
   }
 });
 
 socket.on('gameRevealed', ({ imposterName, secret }) => {
+  resetVotingUI();
   showScreen('result');
   document.getElementById('impReveal').innerHTML = `The Imposter was: <strong>${imposterName}</strong>`;
   document.getElementById('wordReveal').innerHTML = `The secret word was: <strong>${secret}</strong>`;
@@ -551,6 +597,55 @@ socket.on('error', msg => {
   document.getElementById('error-msg').textContent = msg || 'Error - try refreshing page';
 });
 
+
+
+function resetVotingUI() {
+  hasVoted = false;
+  document.getElementById('voting-panel').style.display = 'none';
+  document.getElementById('vote-status').textContent = 'Cast your vote below.';
+  document.getElementById('vote-actions').innerHTML = '';
+  document.getElementById('vote-tally').innerHTML = '';
+}
+
+function renderVoteButtons() {
+  const wrap = document.getElementById('vote-actions');
+  wrap.innerHTML = players
+    .map(p => `<button class="secondary" onclick="castVote('${p.id}')">Vote ${p.name}</button>`)
+    .join('');
+}
+
+function castVote(targetId) {
+  if (hasVoted) return;
+  socket.emit('castVote', { code: currentRoom, targetId });
+  hasVoted = true;
+  document.getElementById('vote-status').textContent = 'Vote submitted.';
+}
+
+function endVoting() {
+  socket.emit('endVoting', currentRoom);
+}
+
+socket.on('votesUpdate', ({ tally, totalVotes, totalPlayers }) => {
+  const tallyHtml = tally
+    .map(t => `<div>${t.name}: <strong>${t.votes}</strong></div>`)
+    .join('');
+
+  document.getElementById('vote-tally').innerHTML =
+    `<div><strong>Votes:</strong> ${totalVotes}/${totalPlayers}</div>${tallyHtml}`;
+});
+
+socket.on('votingEnded', ({ tally, top }) => {
+  const topText = top.length
+    ? top.map(t => `${t.name} (${t.votes})`).join(', ')
+    : 'No votes cast';
+
+  document.getElementById('vote-status').textContent = `Voting ended. Top vote: ${topText}`;
+
+  const tallyHtml = tally
+    .map(t => `<div>${t.name}: <strong>${t.votes}</strong></div>`)
+    .join('');
+  document.getElementById('vote-tally').innerHTML = tallyHtml;
+});
 
 function updateVoicePanelVisibility(screenId) {
   const panel = document.getElementById('voice-chat');

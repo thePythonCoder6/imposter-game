@@ -194,7 +194,9 @@ io.on('connection', (socket) => {
       status: 'lobby',
       host: socket.id,
       imposter: null,
-      voiceParticipants: new Set()
+      voiceParticipants: new Set(),
+      votes: {},
+      voters: new Set()
     };
 
     socket.join(code);
@@ -224,6 +226,8 @@ io.on('connection', (socket) => {
 
     room.imposter = Math.floor(Math.random() * room.players.length);
     room.status = 'playing';
+    room.votes = {};
+    room.voters = new Set();
     io.to(code).emit('gameStarted', {
       imposterIndex: room.imposter,
       secret: room.secret
@@ -241,6 +245,59 @@ io.on('connection', (socket) => {
     });
   });
 
+
+
+
+  socket.on('castVote', ({ code, targetId }) => {
+    code = normalizeRoomCode(code);
+    const room = rooms[code];
+    if (!room || room.status !== 'playing') return;
+
+    const voter = room.players.find(p => p.id === socket.id);
+    const target = room.players.find(p => p.id === targetId);
+    if (!voter || !target) return;
+
+    if (!room.votes[targetId]) room.votes[targetId] = 0;
+
+    if (room.voters.has(socket.id)) {
+      return socket.emit('error', 'You already voted this round');
+    }
+
+    room.voters.add(socket.id);
+    room.votes[targetId] += 1;
+
+    const tally = room.players.map(p => ({
+      id: p.id,
+      name: p.name,
+      votes: room.votes[p.id] || 0
+    }));
+
+    io.to(code).emit('votesUpdate', {
+      tally,
+      totalVotes: room.voters.size,
+      totalPlayers: room.players.length
+    });
+  });
+
+  socket.on('endVoting', (code) => {
+    code = normalizeRoomCode(code);
+    const room = rooms[code];
+    if (!room || socket.id !== room.host) return socket.emit('error', 'Only host can end voting');
+
+    const tally = room.players.map(p => ({
+      id: p.id,
+      name: p.name,
+      votes: room.votes[p.id] || 0
+    }));
+
+    const maxVotes = Math.max(0, ...tally.map(t => t.votes));
+    const top = tally.filter(t => t.votes === maxVotes && maxVotes > 0);
+
+    io.to(code).emit('votingEnded', {
+      tally,
+      top
+    });
+  });
 
   socket.on('voiceJoin', (roomCode) => {
     const code = normalizeRoomCode(roomCode) || socketToRoom[socket.id];
