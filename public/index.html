@@ -286,7 +286,7 @@
       <div class="voice-row">
         <button id="voice-join-btn" onclick="joinVoiceCall()">Join Voice</button>
         <button id="voice-leave-btn" class="secondary" onclick="leaveVoiceCall()" style="display:none;">Leave Voice</button>
-        <button id="voice-mute-btn" class="secondary" onclick="toggleMute()" style="display:none;">Mute</button>
+        <button id="voice-mute-btn" class="secondary" onclick="toggleMute()">Mute</button>
       </div>
       <div id="voice-status">Voice chat is off</div>
       <div id="voice-remotes"></div>
@@ -747,13 +747,14 @@ async function joinVoiceCall() {
 
   try {
     localVoiceStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    isMuted = false;
+    localVoiceStream.getAudioTracks().forEach(track => {
+      track.enabled = !isMuted;
+    });
 
     document.getElementById('voice-join-btn').style.display = 'none';
     document.getElementById('voice-leave-btn').style.display = 'inline-block';
-    document.getElementById('voice-mute-btn').style.display = 'inline-block';
-    document.getElementById('voice-mute-btn').textContent = 'Mute';
-    setVoiceStatus('Voice chat connected');
+    document.getElementById('voice-mute-btn').textContent = isMuted ? 'Unmute' : 'Mute';
+    setVoiceStatus(isMuted ? 'Muted' : 'Voice chat connected');
 
     socket.emit('voiceJoin', currentRoom);
   } catch (err) {
@@ -785,20 +786,27 @@ function leaveVoiceCall() {
 
   document.getElementById('voice-join-btn').style.display = 'inline-block';
   document.getElementById('voice-leave-btn').style.display = 'none';
-  document.getElementById('voice-mute-btn').style.display = 'none';
   document.getElementById('voice-remotes').innerHTML = '';
-  setVoiceStatus('Voice chat is off');
+  document.getElementById('voice-mute-btn').textContent = isMuted ? 'Unmute' : 'Mute';
+  setVoiceStatus(isMuted ? 'Muted (ready for next voice join)' : 'Voice chat is off');
 }
 
 function toggleMute() {
-  if (!localVoiceStream) return;
-
   isMuted = !isMuted;
-  localVoiceStream.getAudioTracks().forEach(track => {
-    track.enabled = !isMuted;
-  });
+
+  if (localVoiceStream) {
+    localVoiceStream.getAudioTracks().forEach(track => {
+      track.enabled = !isMuted;
+    });
+  }
+
   document.getElementById('voice-mute-btn').textContent = isMuted ? 'Unmute' : 'Mute';
-  setVoiceStatus(isMuted ? 'Muted' : 'Voice chat connected');
+
+  if (!localVoiceStream) {
+    setVoiceStatus(isMuted ? 'Muted (will apply when you join voice)' : 'Voice chat is off');
+  } else {
+    setVoiceStatus(isMuted ? 'Muted' : 'Voice chat connected');
+  }
 }
 
 socket.on('voiceParticipants', ({ participants }) => {
